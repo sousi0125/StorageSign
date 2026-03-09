@@ -1,4 +1,11 @@
-StorageSign
+# StorageSign Port for AMC
+
+AMC用のStorageSignのポートです
+1.20.6対応予定
+
+
+
+# StorageSign
 ===========
 
 20億くらいのアイテムを1つの看板に収納できるプラグインなのです。
@@ -15,3 +22,4 @@ StorageSign
 参考にさせていただいたMod　StorageBox　無限チェスト
 
 始まりのﾂｲｰﾖ　https://twitter.com/13pWacky/status/372075397245968384
+
