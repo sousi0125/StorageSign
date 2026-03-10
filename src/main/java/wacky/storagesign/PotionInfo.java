@@ -17,10 +17,10 @@ public class PotionInfo {
 			if(old >= 16384) this.mat = Material.SPLASH_POTION;
 			switch(old % 16){
 			case 1:
-				pot = PotionType.REGEN;
+				pot = PotionType.REGENERATION;
 			    break;
 			case 2:
-				pot = PotionType.SPEED;
+				pot = PotionType.SWIFTNESS;
 			    break;
 			case 3:
 				pot = PotionType.FIRE_RESISTANCE;
@@ -29,7 +29,7 @@ public class PotionInfo {
 				pot = PotionType.POISON;
 			    break;
 			case 5:
-				pot = PotionType.INSTANT_HEAL;
+				pot = PotionType.HEALING;
 			    break;
 			case 6:
 				pot = PotionType.NIGHT_VISION;
@@ -44,10 +44,10 @@ public class PotionInfo {
 				pot = PotionType.SLOWNESS;
 			    break;
 			case 11:
-				pot = PotionType.JUMP;
+				pot = PotionType.LEAPING;
 			    break;
 			case 12:
-				pot = PotionType.INSTANT_DAMAGE;
+				pot = PotionType.HARMING;
 			    break;
 			case 13:
 				pot = PotionType.WATER_BREATHING;
@@ -76,8 +76,8 @@ public class PotionInfo {
 
 	private PotionType getType(String substring) {
 		if(substring.equals("BREAT")) return PotionType.WATER_BREATHING;//例外
-		else if(substring.equals("HEAL")) return PotionType.INSTANT_HEAL;
-		else if(substring.equals("DAMAG")) return PotionType.INSTANT_DAMAGE;
+		else if(substring.equals("HEAL")) return PotionType.HEALING;
+		else if(substring.equals("DAMAG")) return PotionType.HARMING;
         else{ //後ろ切れてるかも
             for(PotionType p : PotionType.values()) {
                 if(p.toString().startsWith(substring)) return p;
@@ -88,8 +88,8 @@ public class PotionInfo {
 
 	public static String getShortType(PotionType pot){
 		if(pot == PotionType.WATER_BREATHING) return "BREAT";
-		else if(pot == PotionType.INSTANT_HEAL) return "HEAL";
-		else if(pot == PotionType.INSTANT_DAMAGE) return "DAMAG";
+		else if(pot == PotionType.HEALING) return "HEAL";
+		else if(pot == PotionType.HARMING) return "DAMAG";
 		else if(pot.toString().length() <= 5) return pot.toString();
 		return pot.toString().substring(0, 5);
 	}

@@ -242,11 +242,18 @@ public class StorageSignCore extends JavaPlugin implements Listener{
             //ここから搬入
             if (storageSign.isSimilar(itemMainHand)) {
                 if (!config.getBoolean("manual-import")) return;
-                if (player.isSneaking()) {
-                    storageSign.addAmount(itemMainHand.getAmount());
-                    player.getInventory().clear(player.getInventory().getHeldItemSlot());
-                    if(isDye(itemMainHand)) sign.setColor(getDyeColor(itemMainHand));//同色用
-                } else for (int i=0; i<player.getInventory().getSize(); i++) {
+				if (player.isSneaking()) {
+					storageSign.addAmount(itemMainHand.getAmount());
+					player.getInventory().clear(player.getInventory().getHeldItemSlot());
+
+					if(isDye(itemMainHand)) {
+						sign.setColor(getDyeColor(itemMainHand));
+					}
+					else if(itemMainHand.getType() == Material.GLOW_INK_SAC){
+						sign.setGlowingText(true);
+					}
+
+				} else for (int i=0; i<player.getInventory().getSize(); i++) {
                     ItemStack item = player.getInventory().getItem(i);
                     if (storageSign.isSimilar(item)) {
                         storageSign.addAmount(item.getAmount());
@@ -256,8 +263,8 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
                 player.updateInventory();
             } else if (config.getBoolean("manual-export"))/*放出*/ {
-            	
-            	if(itemMainHand != null &&  isDye(itemMainHand)) {//染料の場合、放出せずに看板に色がつく
+
+				if(itemMainHand != null && (isDye(itemMainHand) || itemMainHand.getType() == Material.GLOW_INK_SAC)) {//染料or輝くイカスミの場合、放出せずに看板に色がつく
             		event.setUseItemInHand(Result.ALLOW);
         			event.setUseInteractedBlock(Result.ALLOW);//最初にDENYにしてたので戻す、同色染料が使えない。
             		return;
