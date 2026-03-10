@@ -64,10 +64,23 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		this.saveConfig();
 
 		//鯖別レシピが実装されたら
-		Material[] sign = {Material.OAK_SIGN,Material.BIRCH_SIGN,Material.SPRUCE_SIGN,Material.JUNGLE_SIGN,Material.ACACIA_SIGN,Material.DARK_OAK_SIGN,Material.CRIMSON_SIGN,Material.WARPED_SIGN};
-		for(int i= 0 ;i<8;i++) {
+		Material[] sign = {
+				Material.OAK_SIGN,
+				Material.BIRCH_SIGN,
+				Material.SPRUCE_SIGN,
+				Material.JUNGLE_SIGN,
+				Material.ACACIA_SIGN,
+				Material.DARK_OAK_SIGN,
+				Material.CRIMSON_SIGN,
+				Material.WARPED_SIGN,
+				Material.MANGROVE_SIGN,
+				Material.CHERRY_SIGN,
+				Material.BAMBOO_SIGN
+		};
+
+		for(int i = 0; i < sign.length; i++) {
 			
-		ShapedRecipe storageSignRecipe = new ShapedRecipe(new NamespacedKey(this,"ssr"+i),StorageSign.emptySign(sign[i]));
+		ShapedRecipe storageSignRecipe = new ShapedRecipe(new NamespacedKey(this,"storagesign_" + sign[i].name()),StorageSign.emptySign(sign[i]));
 		//ShapedRecipe storageSignRecipe = new ShapedRecipe(StorageSign.emptySign());
 		storageSignRecipe.shape("CCC","CSC","CHC");
 		storageSignRecipe.setIngredient('C', Material.CHEST);
@@ -648,100 +661,52 @@ public class StorageSignCore extends JavaPlugin implements Listener{
     
     //看板も8種類になったし、mat版おいとく
     private boolean isSignPost(Material mat) {
-    	switch(mat) {
-    	case OAK_SIGN:
-    	case BIRCH_SIGN:
-    	case SPRUCE_SIGN:
-    	case JUNGLE_SIGN:
-    	case ACACIA_SIGN:
-    	case DARK_OAK_SIGN:
-    	case CRIMSON_SIGN:
-    	case WARPED_SIGN:
-    		return true;
-    	default:
-    	}
-    	return false;
+        return switch (mat) {
+            case OAK_SIGN, BIRCH_SIGN, SPRUCE_SIGN, JUNGLE_SIGN, ACACIA_SIGN, DARK_OAK_SIGN, CRIMSON_SIGN, WARPED_SIGN,
+                 MANGROVE_SIGN, CHERRY_SIGN, BAMBOO_SIGN -> true;
+            default -> false;
+        };
     }
     
     private boolean isWallSign(Material mat) {
-    	switch(mat) {
-    	case OAK_WALL_SIGN:
-    	case BIRCH_WALL_SIGN:
-    	case SPRUCE_WALL_SIGN:
-    	case JUNGLE_WALL_SIGN:
-    	case ACACIA_WALL_SIGN:
-    	case DARK_OAK_WALL_SIGN:
-    	case CRIMSON_WALL_SIGN:
-    	case WARPED_WALL_SIGN:
-    		return true;
-    	default:
-    	}
-    	return false;
-    }    
+        return switch (mat) {
+            case OAK_WALL_SIGN, BIRCH_WALL_SIGN, SPRUCE_WALL_SIGN, JUNGLE_WALL_SIGN, ACACIA_WALL_SIGN,
+                 DARK_OAK_WALL_SIGN, CRIMSON_WALL_SIGN, WARPED_WALL_SIGN, MANGROVE_WALL_SIGN, CHERRY_WALL_SIGN,
+                 BAMBOO_WALL_SIGN -> true;
+            default -> false;
+        };
+    }
     
     private boolean isDye(ItemStack item) {
     	Material mat = item.getType();
-    	switch(mat) {
-    	case WHITE_DYE:
-    	case ORANGE_DYE:
-    	case MAGENTA_DYE:
-    	case LIGHT_BLUE_DYE:
-    	case YELLOW_DYE:
-    	case LIME_DYE:
-    	case PINK_DYE:
-    	case GRAY_DYE:
-    	case LIGHT_GRAY_DYE:
-    	case CYAN_DYE:
-    	case PURPLE_DYE:
-    	case BLUE_DYE:
-    	case BROWN_DYE:
-    	case GREEN_DYE:
-    	case RED_DYE:
-    	case BLACK_DYE:
-    		return true;
-    	default:
-    	}
-    	return false;
+        return switch (mat) {
+            case WHITE_DYE, ORANGE_DYE, MAGENTA_DYE, LIGHT_BLUE_DYE, YELLOW_DYE, LIME_DYE, PINK_DYE, GRAY_DYE,
+                 LIGHT_GRAY_DYE, CYAN_DYE, PURPLE_DYE, BLUE_DYE, BROWN_DYE, GREEN_DYE, RED_DYE, BLACK_DYE -> true;
+            default -> false;
+        };
     }
 
     private DyeColor getDyeColor(ItemStack item) {
     	Material mat = item.getType();
-    	switch(mat) {
-    	case WHITE_DYE:
-    		return DyeColor.WHITE;
-    	case ORANGE_DYE:
-    		return DyeColor.ORANGE;
-    	case MAGENTA_DYE:
-    		return DyeColor.MAGENTA;
-    	case LIGHT_BLUE_DYE:
-    		return DyeColor.LIGHT_BLUE;
-    	case YELLOW_DYE:
-    		return DyeColor.YELLOW;
-    	case LIME_DYE:
-    		return DyeColor.LIME;
-    	case PINK_DYE:
-    		return DyeColor.PINK;
-    	case GRAY_DYE:
-    		return DyeColor.GRAY;
-    	case LIGHT_GRAY_DYE:
-    		return DyeColor.LIGHT_GRAY;
-    	case CYAN_DYE:
-    		return DyeColor.CYAN;
-    	case PURPLE_DYE:
-    		return DyeColor.PURPLE;
-    	case BLUE_DYE:
-    		return DyeColor.BLUE;
-    	case BROWN_DYE:
-    		return DyeColor.BROWN;
-    	case GREEN_DYE:
-    		return DyeColor.GREEN;
-    	case RED_DYE:
-    		return DyeColor.RED;
-    	case BLACK_DYE:
-    		return DyeColor.BLACK;
-    	default:
-    	}
-    	return null;
+        return switch (mat) {
+            case WHITE_DYE -> DyeColor.WHITE;
+            case ORANGE_DYE -> DyeColor.ORANGE;
+            case MAGENTA_DYE -> DyeColor.MAGENTA;
+            case LIGHT_BLUE_DYE -> DyeColor.LIGHT_BLUE;
+            case YELLOW_DYE -> DyeColor.YELLOW;
+            case LIME_DYE -> DyeColor.LIME;
+            case PINK_DYE -> DyeColor.PINK;
+            case GRAY_DYE -> DyeColor.GRAY;
+            case LIGHT_GRAY_DYE -> DyeColor.LIGHT_GRAY;
+            case CYAN_DYE -> DyeColor.CYAN;
+            case PURPLE_DYE -> DyeColor.PURPLE;
+            case BLUE_DYE -> DyeColor.BLUE;
+            case BROWN_DYE -> DyeColor.BROWN;
+            case GREEN_DYE -> DyeColor.GREEN;
+            case RED_DYE -> DyeColor.RED;
+            case BLACK_DYE -> DyeColor.BLACK;
+            default -> null;
+        };
     }
 
 }
