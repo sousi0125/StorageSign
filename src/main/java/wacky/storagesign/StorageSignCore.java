@@ -49,7 +49,6 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.potion.PotionData;
 
 public class StorageSignCore extends JavaPlugin implements Listener{
 
@@ -175,14 +174,11 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION)
 				{
 					storageSign.setMaterial(mat);
-                    PotionMeta potionMeta = (PotionMeta)itemMainHand.getItemMeta();
-                    PotionData potion = potionMeta.getBasePotionData();
+					PotionMeta potionMeta = (PotionMeta)itemMainHand.getItemMeta();
 
-                    storageSign.setPotion(
-                            potion.getType(),
-                            potion.isExtended(),
-                            potion.isUpgraded()
-                    );
+					storageSign.setPotion(
+							potionMeta.getBasePotionType()
+					);
 				}
 				else if (mat == Material.ENCHANTED_BOOK)
 				{
@@ -241,12 +237,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					itemSign.setMaterial(storageSign.getMaterial());
 					itemSign.setDamage(storageSign.getDamage());
 					itemSign.setEnchant(storageSign.getEnchant());
-
-					itemSign.setPotion(
-							storageSign.getPotion(),
-							storageSign.isExtended(),
-							storageSign.isUpgraded()
-					);
+					itemSign.setPotion(storageSign.getPotion());
 
 					int limit = config.getInt("divide-limit");
 

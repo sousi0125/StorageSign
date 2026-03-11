@@ -11,7 +11,6 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.NumberConversions;
 import wacky.storagesign.PotionInfo;
@@ -23,8 +22,6 @@ public class StorageSign {
     protected short damage;
     protected Enchantment ench;
     protected PotionType pot;
-    protected boolean extended;
-    protected boolean upgraded;
     protected int amount;
     protected int stack;
     protected boolean isEmpty;
@@ -41,13 +38,9 @@ public class StorageSign {
     			ench = ei.getEnchantType();
     		}
     		else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-    			PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
-    			mat = pi.getMaterial();
-                damage = pi.getDamage();
+                PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
+                mat = pi.getMaterial();
                 pot = pi.getPotionType();
-
-                extended = damage == 1;
-                upgraded = damage == 2;
     		}else if(str[0].contains(":")) damage = NumberConversions.toShort(str[0].split(":")[1]);
     		else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
     		amount = NumberConversions.toInt(str[1]);
@@ -74,11 +67,7 @@ public class StorageSign {
          else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
              PotionInfo pi = new PotionInfo(mat, line2);
              mat = pi.getMaterial();
-             damage = pi.getDamage();
              pot = pi.getPotionType();
-
-             extended = damage == 1;
-             upgraded = damage == 2;
          }
         else if(line2.length == 2) damage = NumberConversions.toShort(line2[1]);
         else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
@@ -210,7 +199,7 @@ public class StorageSign {
         	if(mat == Material.SPLASH_POTION) prefix = "S";
         	else if(mat == Material.LINGERING_POTION) prefix = "L";
 
-        	return prefix + "POTION:" + PotionInfo.getShortType(pot) +":" + damage;
+            return prefix + "POTION:" + PotionInfo.getShortType(pot);
         }
 
         int limit = 99;//リミットブレイク
@@ -233,7 +222,7 @@ public class StorageSign {
         if (isEmpty) list.add("Empty");
         else if (mat == Material.ENCHANTED_BOOK) list.add(mat.toString() + ":" + ench.getKey().getKey() + ":" + damage + " " + amount);
         else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-        	list.add(mat.toString() + ":" + pot.toString() + ":" + damage + " " + amount);
+            list.add(getShortName() + " " + amount);
         }
         else list.add(getShortName() +" "+ amount);
         meta.setLore(list);
@@ -298,18 +287,12 @@ public class StorageSign {
             return item;
         }
         else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-
-            ItemStack item = new ItemStack(mat, 1);
-
-            PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-
-            if (pot != null) {
-                potionMeta.setBasePotionData(new PotionData(pot, extended, upgraded));
+            ItemStack item = new ItemStack(mat);
+            if(item.getItemMeta() instanceof PotionMeta meta && pot != null){
+                meta.setBasePotionType(pot);
+                item.setItemMeta(meta);
             }
-
-            item.setItemMeta(potionMeta);
-
-            return item;
+                return item;
         }else if(mat == Material.FIREWORK_ROCKET){
         	ItemStack item = new ItemStack(mat, 1);
         	FireworkMeta fireworkMeta = (FireworkMeta)item.getItemMeta();
@@ -343,15 +326,8 @@ public class StorageSign {
             if(item.getType() != mat) return false;
 
             PotionMeta meta = (PotionMeta)item.getItemMeta();
-            PotionData data = meta.getBasePotionData();
 
-            if(data.getType() != pot) return false;
-
-            boolean ext = damage == 1;
-            boolean upg = damage == 2;
-
-            if(data.isExtended() != ext) return false;
-            if(data.isUpgraded() != upg) return false;
+            if(meta.getBasePotionType() != pot) return false;
 
             return true;
         }
@@ -405,22 +381,8 @@ public class StorageSign {
 		return ench;
 	}
 
-    public void setPotion(PotionType pot, boolean extended, boolean upgraded) {
+    public void setPotion(PotionType pot){
         this.pot = pot;
-        this.extended = extended;
-        this.upgraded = upgraded;
-
-        if (extended) damage = 1;
-        else if (upgraded) damage = 2;
-        else damage = 0;
-    }
-
-    public boolean isExtended() {
-        return extended;
-    }
-
-    public boolean isUpgraded() {
-        return upgraded;
     }
 
 	public PotionType getPotion() {
