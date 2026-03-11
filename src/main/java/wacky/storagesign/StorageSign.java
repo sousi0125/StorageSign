@@ -11,7 +11,6 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.NumberConversions;
 import wacky.storagesign.PotionInfo;
@@ -39,10 +38,9 @@ public class StorageSign {
     			ench = ei.getEnchantType();
     		}
     		else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-    			PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
-    			mat = pi.getMaterial();
-    			damage = pi.getDamage();
-    			pot = pi.getPotionType();
+                PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
+                mat = pi.getMaterial();
+                pot = pi.getPotionType();
     		}else if(str[0].contains(":")) damage = NumberConversions.toShort(str[0].split(":")[1]);
     		else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
     		amount = NumberConversions.toInt(str[1]);
@@ -66,12 +64,11 @@ public class StorageSign {
         	damage = ei.getDamage();
         	ench = ei.getEnchantType();
         }
-        else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-			PotionInfo pi = new PotionInfo(mat, line2);
-			mat = pi.getMaterial();
-			damage = pi.getDamage();
-			pot = pi.getPotionType();
-        }
+         else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
+             PotionInfo pi = new PotionInfo(mat, line2);
+             mat = pi.getMaterial();
+             pot = pi.getPotionType();
+         }
         else if(line2.length == 2) damage = NumberConversions.toShort(line2[1]);
         else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
 		 
@@ -88,6 +85,9 @@ public class StorageSign {
         else if(signmat == Material.DARK_OAK_WALL_SIGN) smat = Material.DARK_OAK_SIGN;
         else if(signmat == Material.CRIMSON_WALL_SIGN) smat = Material.CRIMSON_SIGN;
         else if(signmat == Material.WARPED_WALL_SIGN) smat = Material.WARPED_SIGN;
+        else if(signmat == Material.MANGROVE_WALL_SIGN) smat = Material.MANGROVE_SIGN;
+        else if(signmat == Material.CHERRY_WALL_SIGN) smat = Material.CHERRY_SIGN;
+        else if(signmat == Material.BAMBOO_WALL_SIGN) smat = Material.BAMBOO_SIGN;
         else smat = signmat;
         
     }
@@ -127,6 +127,18 @@ public class StorageSign {
         else if(str.matches("WarpedStorageSign")) {
         	damage = 1;
         	return Material.WARPED_SIGN;
+        }
+        else if(str.matches("MangroveStorageSign")) {
+            damage = 1;
+            return Material.MANGROVE_SIGN;
+        }
+        else if(str.matches("CherryStorageSign")) {
+            damage = 1;
+            return Material.CHERRY_SIGN;
+        }
+        else if(str.matches("BambooStorageSign")) {
+            damage = 1;
+            return Material.BAMBOO_SIGN;
         }
         if (str.matches("HorseEgg")){
         	damage = 1;
@@ -171,6 +183,9 @@ public class StorageSign {
         else if(mat == Material.DARK_OAK_SIGN && damage == 1) return "DarkOakStorageSign";
         else if(mat == Material.CRIMSON_SIGN && damage == 1) return "CrimsonStorageSign";
         else if(mat == Material.WARPED_SIGN && damage == 1) return "WarpedStorageSign";
+        else if(mat == Material.MANGROVE_SIGN && damage == 1) return "MangroveStorageSign";
+        else if(mat == Material.CHERRY_SIGN && damage == 1) return "CherryStorageSign";
+        else if(mat == Material.BAMBOO_SIGN && damage == 1) return "BambooStorageSign";
         //else if (mat == Material.LEGACY_STAINED_GLASS_PANE) return damage == 0 ? "STAINGLASS_PANE" : "STAINGLASS_P:" + damage;
         //else if (mat == Material.LEGACY_REDSTONE_COMPARATOR) return "RS_COMPARATOR";
         //else if (mat == Material.LEGACY_REDSTONE_TORCH_ON) return "REDSTONE_TORCH";
@@ -184,7 +199,7 @@ public class StorageSign {
         	if(mat == Material.SPLASH_POTION) prefix = "S";
         	else if(mat == Material.LINGERING_POTION) prefix = "L";
 
-        	return prefix + "POTION:" + PotionInfo.getShortType(pot) +":" + damage;
+            return prefix + "POTION:" + PotionInfo.getShortType(pot);
         }
 
         int limit = 99;//リミットブレイク
@@ -207,7 +222,7 @@ public class StorageSign {
         if (isEmpty) list.add("Empty");
         else if (mat == Material.ENCHANTED_BOOK) list.add(mat.toString() + ":" + ench.getKey().getKey() + ":" + damage + " " + amount);
         else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-        	list.add(mat.toString() + ":" + pot.toString() + ":" + damage + " " + amount);
+            list.add(getShortName() + " " + amount);
         }
         else list.add(getShortName() +" "+ amount);
         meta.setLore(list);
@@ -258,8 +273,9 @@ public class StorageSign {
         	if(damage == 0) return emptySign();
         	if(damage == 1) return emptyHorseEgg();
         }if(mat == Material.STONE_SLAB) return new ItemStack(mat,1);//ダメージ値0にする
-        else if(mat == Material.OAK_SIGN  || mat == Material.SPRUCE_SIGN || mat == Material.BIRCH_SIGN || mat == Material.JUNGLE_SIGN || 
-        		mat == Material.ACACIA_SIGN  || mat == Material.DARK_OAK_SIGN || mat == Material.CRIMSON_SIGN  || mat == Material.WARPED_SIGN) {
+        else if(mat == Material.OAK_SIGN  || mat == Material.SPRUCE_SIGN || mat == Material.BIRCH_SIGN || mat == Material.JUNGLE_SIGN ||
+                mat == Material.ACACIA_SIGN  || mat == Material.DARK_OAK_SIGN || mat == Material.CRIMSON_SIGN  || mat == Material.WARPED_SIGN ||
+                mat == Material.MANGROVE_SIGN || mat == Material.CHERRY_SIGN || mat == Material.BAMBOO_SIGN) {
         	if(damage == 0) return new ItemStack(mat,1);
         	else return emptySign(mat);
         }
@@ -271,11 +287,12 @@ public class StorageSign {
             return item;
         }
         else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-        	ItemStack item = new ItemStack(mat, 1);
-        	PotionMeta potionMeta = (PotionMeta)item.getItemMeta();
-        	potionMeta.setBasePotionData(new PotionData(pot, damage == 1, damage == 2));
-            item.setItemMeta(potionMeta);
-            return item;
+            ItemStack item = new ItemStack(mat);
+            if(item.getItemMeta() instanceof PotionMeta meta && pot != null){
+                meta.setBasePotionType(pot);
+                item.setItemMeta(meta);
+            }
+                return item;
         }else if(mat == Material.FIREWORK_ROCKET){
         	ItemStack item = new ItemStack(mat, 1);
         	FireworkMeta fireworkMeta = (FireworkMeta)item.getItemMeta();
@@ -305,6 +322,14 @@ public class StorageSign {
             return false;
         }else if(isShulker(mat)){
         	//後回し
+        }else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
+            if(item.getType() != mat) return false;
+
+            PotionMeta meta = (PotionMeta)item.getItemMeta();
+
+            if(meta.getBasePotionType() != pot) return false;
+
+            return true;
         }
         return getContents().isSimilar(item);
     }
@@ -356,9 +381,9 @@ public class StorageSign {
 		return ench;
 	}
 
-	public void setPotion(PotionType pot) {
-		this.pot = pot;
-	}
+    public void setPotion(PotionType pot){
+        this.pot = pot;
+    }
 
 	public PotionType getPotion() {
 		return pot;
