@@ -16,45 +16,19 @@ public class PotionInfo {
 			short old = NumberConversions.toShort(str[1]);
 			if(old >= 16384) this.mat = Material.SPLASH_POTION;
 			switch(old % 16){
-			case 1:
-				pot = PotionType.REGENERATION;
-			    break;
-			case 2:
-				pot = PotionType.SWIFTNESS;
-			    break;
-			case 3:
-				pot = PotionType.FIRE_RESISTANCE;
-			    break;
-			case 4:
-				pot = PotionType.POISON;
-			    break;
-			case 5:
-				pot = PotionType.HEALING;
-			    break;
-			case 6:
-				pot = PotionType.NIGHT_VISION;
-			    break;
-			case 8:
-				pot = PotionType.WEAKNESS;
-			    break;
-			case 9:
-				pot = PotionType.STRENGTH;
-			    break;
-			case 10:
-				pot = PotionType.SLOWNESS;
-			    break;
-			case 11:
-				pot = PotionType.LEAPING;
-			    break;
-			case 12:
-				pot = PotionType.HARMING;
-			    break;
-			case 13:
-				pot = PotionType.WATER_BREATHING;
-				break;
-			case 14:
-				pot = PotionType.INVISIBILITY;
-				break;
+			case 1: pot = PotionType.REGENERATION; break;
+			case 2: pot = PotionType.SWIFTNESS; break;
+			case 3: pot = PotionType.FIRE_RESISTANCE; break;
+			case 4: pot = PotionType.POISON; break;
+			case 5: pot = PotionType.HEALING; break;
+			case 6: pot = PotionType.NIGHT_VISION; break;
+			case 8: pot = PotionType.WEAKNESS; break;
+			case 9: pot = PotionType.STRENGTH; break;
+			case 10: pot = PotionType.SLOWNESS; break;
+			case 11: pot = PotionType.LEAPING; break;
+			case 12: pot = PotionType.HARMING; break;
+			case 13: pot = PotionType.WATER_BREATHING; break;
+			case 14: pot = PotionType.INVISIBILITY; break;
 
 			default:
 				if(old == 16) pot = PotionType.AWKWARD;

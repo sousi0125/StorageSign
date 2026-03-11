@@ -23,6 +23,8 @@ public class StorageSign {
     protected short damage;
     protected Enchantment ench;
     protected PotionType pot;
+    protected boolean extended;
+    protected boolean upgraded;
     protected int amount;
     protected int stack;
     protected boolean isEmpty;
@@ -41,8 +43,11 @@ public class StorageSign {
     		else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
     			PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
     			mat = pi.getMaterial();
-    			damage = pi.getDamage();
-    			pot = pi.getPotionType();
+                damage = pi.getDamage();
+                pot = pi.getPotionType();
+
+                extended = damage == 1;
+                upgraded = damage == 2;
     		}else if(str[0].contains(":")) damage = NumberConversions.toShort(str[0].split(":")[1]);
     		else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
     		amount = NumberConversions.toInt(str[1]);
@@ -66,12 +71,15 @@ public class StorageSign {
         	damage = ei.getDamage();
         	ench = ei.getEnchantType();
         }
-        else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-			PotionInfo pi = new PotionInfo(mat, line2);
-			mat = pi.getMaterial();
-			damage = pi.getDamage();
-			pot = pi.getPotionType();
-        }
+         else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
+             PotionInfo pi = new PotionInfo(mat, line2);
+             mat = pi.getMaterial();
+             damage = pi.getDamage();
+             pot = pi.getPotionType();
+
+             extended = damage == 1;
+             upgraded = damage == 2;
+         }
         else if(line2.length == 2) damage = NumberConversions.toShort(line2[1]);
         else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
 		 
@@ -290,10 +298,17 @@ public class StorageSign {
             return item;
         }
         else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-        	ItemStack item = new ItemStack(mat, 1);
-        	PotionMeta potionMeta = (PotionMeta)item.getItemMeta();
-        	potionMeta.setBasePotionData(new PotionData(pot, damage == 1, damage == 2));
+
+            ItemStack item = new ItemStack(mat, 1);
+
+            PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
+
+            if (pot != null) {
+                potionMeta.setBasePotionData(new PotionData(pot, extended, upgraded));
+            }
+
             item.setItemMeta(potionMeta);
+
             return item;
         }else if(mat == Material.FIREWORK_ROCKET){
         	ItemStack item = new ItemStack(mat, 1);
@@ -324,6 +339,21 @@ public class StorageSign {
             return false;
         }else if(isShulker(mat)){
         	//後回し
+        }else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
+            if(item.getType() != mat) return false;
+
+            PotionMeta meta = (PotionMeta)item.getItemMeta();
+            PotionData data = meta.getBasePotionData();
+
+            if(data.getType() != pot) return false;
+
+            boolean ext = damage == 1;
+            boolean upg = damage == 2;
+
+            if(data.isExtended() != ext) return false;
+            if(data.isUpgraded() != upg) return false;
+
+            return true;
         }
         return getContents().isSimilar(item);
     }
@@ -375,9 +405,23 @@ public class StorageSign {
 		return ench;
 	}
 
-	public void setPotion(PotionType pot) {
-		this.pot = pot;
-	}
+    public void setPotion(PotionType pot, boolean extended, boolean upgraded) {
+        this.pot = pot;
+        this.extended = extended;
+        this.upgraded = upgraded;
+
+        if (extended) damage = 1;
+        else if (upgraded) damage = 2;
+        else damage = 0;
+    }
+
+    public boolean isExtended() {
+        return extended;
+    }
+
+    public boolean isUpgraded() {
+        return upgraded;
+    }
 
 	public PotionType getPotion() {
 		return pot;

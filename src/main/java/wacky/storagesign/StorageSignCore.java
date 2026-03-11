@@ -175,11 +175,14 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION)
 				{
 					storageSign.setMaterial(mat);
-					PotionMeta potionMeta = (PotionMeta)itemMainHand.getItemMeta();
-					PotionData potion = potionMeta.getBasePotionData();
-					if(potion.isExtended()) storageSign.setDamage((short) 1);
-					if(potion.isUpgraded()) storageSign.setDamage((short) 2);
-					storageSign.setPotion(potion.getType());
+                    PotionMeta potionMeta = (PotionMeta)itemMainHand.getItemMeta();
+                    PotionData potion = potionMeta.getBasePotionData();
+
+                    storageSign.setPotion(
+                            potion.getType(),
+                            potion.isExtended(),
+                            potion.isUpgraded()
+                    );
 				}
 				else if (mat == Material.ENCHANTED_BOOK)
 				{
@@ -238,7 +241,12 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					itemSign.setMaterial(storageSign.getMaterial());
 					itemSign.setDamage(storageSign.getDamage());
 					itemSign.setEnchant(storageSign.getEnchant());
-					itemSign.setPotion(storageSign.getPotion());
+
+					itemSign.setPotion(
+							storageSign.getPotion(),
+							storageSign.isExtended(),
+							storageSign.isUpgraded()
+					);
 
 					int limit = config.getInt("divide-limit");
 
