@@ -48,6 +48,8 @@ import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class StorageSignCore extends JavaPlugin implements Listener{
@@ -61,6 +63,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		config.options().copyDefaults(true);
 		config.options().header("StorageSign Configuration");
 		this.saveConfig();
+		StorageSign.setup(this);
 
 		//鯖別レシピが実装されたら
 		Material[] sign = {
@@ -78,7 +81,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		};
 
 		for(int i = 0; i < sign.length; i++) {
-			
+
 		ShapedRecipe storageSignRecipe = new ShapedRecipe(new NamespacedKey(this,"storagesign_" + sign[i].name()),StorageSign.emptySign(sign[i]));
 		//ShapedRecipe storageSignRecipe = new ShapedRecipe(StorageSign.emptySign());
 		storageSignRecipe.shape("CCC","CSC","CHC");
@@ -98,20 +101,15 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 	
 	public boolean isStorageSign(ItemStack item) {
-		if (item == null) return false;
-		if(isSignPost(item.getType())) {
-			
-			if (!item.getItemMeta().hasDisplayName()) return false;
-			if (!item.getItemMeta().getDisplayName().matches("StorageSign")) return false;
-			return item.getItemMeta().hasLore();
-		}
-		return false;
+		if (item == null || !item.hasItemMeta()) return false;
+		PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
+		return pdc.has(StorageSign.getIsStorageKey(), PersistentDataType.BYTE);
 	}
 
 	public boolean isStorageSign(Block block) {
-		if(isSignPost(block.getType()) || isWallSign(block.getType())) {			
-			Sign sign = (Sign) block.getState();
-			if (sign.getLine(0).matches("StorageSign")) return true;
+		if (block.getState() instanceof org.bukkit.block.TileState state) {
+			PersistentDataContainer pdc = state.getPersistentDataContainer();
+			return pdc.has(StorageSign.getIsStorageKey(), PersistentDataType.BYTE);
 		}
 		return false;
 	}
@@ -307,25 +305,33 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 	@EventHandler
     public void onSignChange(SignChangeEvent event) {
-        if (event.isCancelled())return;
-        Sign sign = (Sign) event.getBlock().getState();
+		if (event.isCancelled()) return;
 
-        if (sign.getLine(0).matches("StorageSign"))/*変更拒否*/ {
-            event.setLine(0, sign.getLine(0));
-            event.setLine(1, sign.getLine(1));
-            event.setLine(2, sign.getLine(2));
-            event.setLine(3, sign.getLine(3));
-            sign.update();
-        } else if (event.getLine(0).equalsIgnoreCase("storagesign"))/*書き込んで生成禁止*/ {
-            if (event.getPlayer().hasPermission("storagesign.create")) {
-                event.setLine(0, "StorageSign");
-                sign.update();
-            } else {
-                event.getPlayer().sendMessage(ChatColor.RED + config.getString("no-permisson"));
-                event.setCancelled(true);
-            }
-        }
-    }
+		Block block = event.getBlock();
+		Player player = event.getPlayer();
+
+		//PDCがある場合はダメよ (元々キャンセルされるけど)
+		if (isStorageSign(block)) {
+			event.setCancelled(true);
+			return;
+		}
+
+		//手書きの制限
+		if (event.getLine(0).equalsIgnoreCase("storagesign")) {
+			if (!player.hasPermission("storagesign.create")) {
+				//権限ナシは警告
+				player.sendMessage(org.bukkit.ChatColor.RED + config.getString("no-permisson"));
+			} else {
+				//権限アリはStorageSign化
+				event.setLine(0, "StorageSign");
+				if (block.getState() instanceof Sign sign) {
+					PersistentDataContainer pdc = sign.getPersistentDataContainer();
+					pdc.set(StorageSign.getIsStorageKey(), PersistentDataType.BYTE, (byte) 1);
+					sign.update();
+				}
+			}
+		}
+	}
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockBreak(BlockBreakEvent event) {
@@ -367,13 +373,17 @@ public class StorageSignCore extends JavaPlugin implements Listener{
         }
         StorageSign storageSign = new StorageSign(event.getItemInHand());
         Sign sign = (Sign)event.getBlock().getState();
+		//PDC
+		PersistentDataContainer blockPdc = sign.getPersistentDataContainer();
+		blockPdc.set(StorageSign.getIsStorageKey(), PersistentDataType.BYTE, (byte) 1);
+
         for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
         
         if(storageSign.getSmat() == Material.DARK_OAK_SIGN ) {
         	sign.setColor(DyeColor.WHITE);//文字色を白くする
         }
         sign.update();
-        player.closeInventory();//時差発動が必要らしい
+		org.bukkit.Bukkit.getScheduler().runTaskLater(this, player::closeInventory, 1L);
     }
     
     

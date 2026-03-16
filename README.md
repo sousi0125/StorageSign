@@ -1,10 +1,14 @@
 # StorageSign Port for AMC
 
-AMC用のStorageSignのポートです
-1.20.6対応予定
-ほぼAIだけど使えるだけ許してぇ～ん　しっかり修正するからぁ～ん
+AMC用のStorageSignのポートです  
+1.20.6対応  
+ほぼAIだけど使えるだけ許してね    
+バージョン対応のIssue飛ばされてもそこは無理だから許してね バグは対応するけど
 
 
+
+もとのリポジトリ->https://github.com/wackyls6/StorageSign  
+もとのりどみ⤵
 # StorageSign
 ===========
 
@@ -22,5 +26,6 @@ AMC用のStorageSignのポートです
 参考にさせていただいたMod　StorageBox　無限チェスト
 
 始まりのﾂｲｰﾖ　https://twitter.com/13pWacky/status/372075397245968384
+
 
 

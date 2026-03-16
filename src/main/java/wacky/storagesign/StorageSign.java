@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Sign;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -11,6 +12,9 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.NumberConversions;
 import wacky.storagesign.PotionInfo;
@@ -25,6 +29,12 @@ public class StorageSign {
     protected int amount;
     protected int stack;
     protected boolean isEmpty;
+    private static NamespacedKey IS_STORAGE_KEY;
+
+    //NamespacedKey初期化
+    public static void setup(JavaPlugin plugin) {
+        IS_STORAGE_KEY = new NamespacedKey(plugin, "is_storagesign");
+    }
     
     //StorageSignだと確認してから使っちくりー
     public StorageSign(ItemStack item) {
@@ -216,6 +226,11 @@ public class StorageSign {
     public ItemStack getStorageSign() {
         ItemStack item = new ItemStack(smat, stack);
         ItemMeta meta = item.getItemMeta();
+        //PDC
+        if (meta != null && IS_STORAGE_KEY != null) {
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            pdc.set(IS_STORAGE_KEY, PersistentDataType.BYTE, (byte) 1);
+        }
         meta.setDisplayName("StorageSign");
         List<String> list = new ArrayList<>();
         //IDとMaterial名が混ざってたり、エンチャ本対応したり
@@ -238,10 +253,18 @@ public class StorageSign {
 	public static ItemStack emptySign(Material smat) {
         ItemStack emptySign = new ItemStack(smat);
         ItemMeta meta = emptySign.getItemMeta();
+
+        //PDC設定
+        if (meta != null && IS_STORAGE_KEY != null) {
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            pdc.set(IS_STORAGE_KEY, PersistentDataType.BYTE, (byte) 1);
+        }
+
         List<String> list = new ArrayList<>();
         meta.setDisplayName("StorageSign");
         list.add("Empty");
         meta.setLore(list);
+
         emptySign.setItemMeta(meta);
         return emptySign;
 	}
@@ -392,7 +415,11 @@ public class StorageSign {
 	public Material getSmat() {
 		return smat;
 	}
-	
+
+    public static NamespacedKey getIsStorageKey() {
+        return IS_STORAGE_KEY;
+    }
+
 	private boolean isShulker(Material mat) {
 		switch(mat){
 		case SHULKER_BOX:
