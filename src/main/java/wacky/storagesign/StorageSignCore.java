@@ -206,6 +206,9 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					storageSign.setDamage(itemMainHand.getDurability());
 				}
 
+				storageSign.setStoredItem(itemMainHand.clone());
+				sign.getPersistentDataContainer().set(StorageSign.getIsStorageKey(), PersistentDataType.BYTE, (byte) 1);
+				storageSign.storeItemStack(sign);
 				for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
 				sign.update();
 				return;
@@ -297,7 +300,6 @@ public class StorageSignCore extends JavaPlugin implements Listener{
                 loc.setY(loc.getY() + 0.5);
                 player.getWorld().dropItem(loc, item);
             }
-
             for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
             sign.update();
         }

@@ -5,6 +5,7 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Sign;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BannerMeta;
@@ -30,10 +31,13 @@ public class StorageSign {
     protected int stack;
     protected boolean isEmpty;
     private static NamespacedKey IS_STORAGE_KEY;
+    private static NamespacedKey STORED_ITEM;
+    protected ItemStack storedItem;
 
     //NamespacedKey初期化
     public static void setup(JavaPlugin plugin) {
         IS_STORAGE_KEY = new NamespacedKey(plugin, "is_storagesign");
+        STORED_ITEM = new NamespacedKey(plugin, "stored_item");
     }
     
     //StorageSignだと確認してから使っちくりー
@@ -85,6 +89,7 @@ public class StorageSign {
         amount = NumberConversions.toInt(sign.getLine(2));
         isEmpty = amount == 0;
         stack = 1;
+        loadItemStack(sign);
 
         //壁掛け看板のチェック
         if(signmat == Material.OAK_WALL_SIGN) smat = Material.OAK_SIGN;
@@ -100,6 +105,33 @@ public class StorageSign {
         else if(signmat == Material.BAMBOO_WALL_SIGN) smat = Material.BAMBOO_SIGN;
         else smat = signmat;
         
+    }
+
+    public void storeItemStack(Sign sign) {
+        if (storedItem == null) return;
+
+        PersistentDataContainer pdc = sign.getPersistentDataContainer();
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("item", storedItem);
+        String serialized = config.saveToString(); // アイテムを文字列に変換
+
+        pdc.set(STORED_ITEM, PersistentDataType.STRING, serialized);
+        sign.update();
+    }
+
+    public void loadItemStack(Sign sign) {
+        PersistentDataContainer pdc = sign.getPersistentDataContainer();
+        String serialized = pdc.get(STORED_ITEM, PersistentDataType.STRING);
+
+        if (serialized != null) {
+            YamlConfiguration config = new YamlConfiguration();
+            try {
+                config.loadFromString(serialized);
+                this.storedItem = config.getItemStack("item");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 	//変換
@@ -227,9 +259,19 @@ public class StorageSign {
         ItemStack item = new ItemStack(smat, stack);
         ItemMeta meta = item.getItemMeta();
         //PDC
-        if (meta != null && IS_STORAGE_KEY != null) {
+        if (meta != null) {
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
+
+            //StorageSignですよ
             pdc.set(IS_STORAGE_KEY, PersistentDataType.BYTE, (byte) 1);
+
+            //空じゃなかったら引き継ぐよ
+            if (!isEmpty && storedItem != null) {
+                YamlConfiguration config = new YamlConfiguration();
+                config.set("item", storedItem);
+                String serialized = config.saveToString();
+                pdc.set(STORED_ITEM, PersistentDataType.STRING, serialized);
+            }
         }
         meta.setDisplayName("StorageSign");
         List<String> list = new ArrayList<>();
@@ -418,6 +460,11 @@ public class StorageSign {
 
     public static NamespacedKey getIsStorageKey() {
         return IS_STORAGE_KEY;
+    }
+
+    public void setStoredItem(ItemStack item) {
+        this.storedItem = item;
+        this.storedItem.setAmount(1); //数はいらない
     }
 
 	private boolean isShulker(Material mat) {
