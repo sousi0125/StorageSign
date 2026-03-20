@@ -56,6 +56,8 @@ public class PotionInfo {
 	static {
 		SHORT_NAMES.put("AWKWARD", "AWK");
 		SHORT_NAMES.put("FIRE_RESISTANCE", "FIRE");
+		SHORT_NAMES.put("HARMING", "DMG");
+		SHORT_NAMES.put("HEALING", "HEAL");
 		SHORT_NAMES.put("INSTANT_DAMAGE", "DMG");
 		SHORT_NAMES.put("INSTANT_HEALTH", "HEAL");
 		SHORT_NAMES.put("INFESTED", "INFES");

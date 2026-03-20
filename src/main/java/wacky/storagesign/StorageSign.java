@@ -332,70 +332,22 @@ public class StorageSign {
         return sign[i];
     }
 
-    public ItemStack getContents() {//中身取得、一部アイテム用の例外
-        if (mat == null) return null;
-        if (mat == Material.END_PORTAL){
-        	if(damage == 0) return emptySign();
-        	if(damage == 1) return emptyHorseEgg();
-        }if(mat == Material.STONE_SLAB) return new ItemStack(mat,1);//ダメージ値0にする
-        else if(mat == Material.OAK_SIGN  || mat == Material.SPRUCE_SIGN || mat == Material.BIRCH_SIGN || mat == Material.JUNGLE_SIGN ||
-                mat == Material.ACACIA_SIGN  || mat == Material.DARK_OAK_SIGN || mat == Material.CRIMSON_SIGN  || mat == Material.WARPED_SIGN ||
-                mat == Material.MANGROVE_SIGN || mat == Material.CHERRY_SIGN || mat == Material.BAMBOO_SIGN) {
-        	if(damage == 0) return new ItemStack(mat,1);
-        	else return emptySign(mat);
-        }
-        else  if (mat == Material.ENCHANTED_BOOK) {
-            ItemStack item = new ItemStack(mat, 1);
-            EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta)item.getItemMeta();
-            enchantMeta.addStoredEnchant(ench, damage, true);
-            item.setItemMeta(enchantMeta);
+    public ItemStack getContents() {
+        //PDCありますか
+        if (storedItem != null) {
+            ItemStack item = storedItem.clone();
+            item.setAmount(1);
             return item;
         }
-        else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-            ItemStack item = new ItemStack(mat);
-            if(item.getItemMeta() instanceof PotionMeta meta && pot != null){
-                meta.setBasePotionType(pot);
-                item.setItemMeta(meta);
-            }
-                return item;
-        }else if(mat == Material.FIREWORK_ROCKET){
-        	ItemStack item = new ItemStack(mat, 1);
-        	FireworkMeta fireworkMeta = (FireworkMeta)item.getItemMeta();
-        	fireworkMeta.setPower(damage);
-        	item.setItemMeta(fireworkMeta);
-        	return item;
-        }else if(mat == Material.WHITE_BANNER && damage == 8) {
-        	ItemStack item = new ItemStack(mat,1);
-        	item.setItemMeta(StorageSignCore.ominousBannerMeta);//どこかからコピー
-        	return item;
-        	
-        }
-        if(damage == 0) return new ItemStack(mat, 1);//大半はダメージなくなった
-        return new ItemStack(mat, 1, damage);//ツール系のみダメージあり
+
+        //なかった場合
+        if (mat == null || mat == Material.AIR) return null;
+        return new ItemStack(mat, 1);
     }
 
-	//回収可能か判定、エンチャ本は本自身の合成回数を問わない
+	//回収可能か判定
     public boolean isSimilar(ItemStack item) {
         if(item == null) return false;
-        if (mat == Material.ENCHANTED_BOOK && item.getType() == Material.ENCHANTED_BOOK) {
-            EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta)item.getItemMeta();
-            if(enchantMeta.getStoredEnchants().size() == 1)
-            {
-                Enchantment itemEnch = enchantMeta.getStoredEnchants().keySet().toArray(new Enchantment[0])[0];
-                if (itemEnch == ench && enchantMeta.getStoredEnchantLevel(itemEnch) == damage) return true;
-            }
-            return false;
-        }else if(isShulker(mat)){
-        	//後回し
-        }else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-            if(item.getType() != mat) return false;
-
-            PotionMeta meta = (PotionMeta)item.getItemMeta();
-
-            if(meta.getBasePotionType() != pot) return false;
-
-            return true;
-        }
         return getContents().isSimilar(item);
     }
 
