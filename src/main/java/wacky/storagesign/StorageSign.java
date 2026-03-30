@@ -8,9 +8,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -18,7 +16,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.NumberConversions;
-import wacky.storagesign.PotionInfo;
 
 public class StorageSign {
 
@@ -30,37 +27,91 @@ public class StorageSign {
     protected int amount;
     protected int stack;
     protected boolean isEmpty;
-    private static NamespacedKey IS_STORAGE_KEY;
+    protected String itemName;
+    private static NamespacedKey IS_STORAGE_SIGN;
     private static NamespacedKey STORED_ITEM;
     protected ItemStack storedItem;
 
     //NamespacedKey初期化
     public static void setup(JavaPlugin plugin) {
-        IS_STORAGE_KEY = new NamespacedKey(plugin, "is_storagesign");
+        IS_STORAGE_SIGN = new NamespacedKey(plugin, "is_storagesign");
         STORED_ITEM = new NamespacedKey(plugin, "stored_item");
     }
     
     //StorageSignだと確認してから使っちくりー
     public StorageSign(ItemStack item) {
-    	String[] str = item.getItemMeta().getLore().get(0).split(" ");
-    	if(str[0].matches("Empty")) isEmpty = true;
-    	else {
-    		mat = getMaterial(str[0].split(":")[0]);
-    		if(mat == Material.ENCHANTED_BOOK){
-    			EnchantInfo ei = new EnchantInfo(mat, str[0].split(":"));
-    			damage = ei.getDamage();
-    			ench = ei.getEnchantType();
-    		}
-    		else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-                PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
-                mat = pi.getMaterial();
-                pot = pi.getPotionType();
-    		}else if(str[0].contains(":")) damage = NumberConversions.toShort(str[0].split(":")[1]);
-    		else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
-    		amount = NumberConversions.toInt(str[1]);
-    	}
-    	smat = item.getType();
-    	stack = item.getAmount();
+        this.smat = item.getType();
+        this.stack = item.getAmount();
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        String serialized = pdc.get(STORED_ITEM, PersistentDataType.STRING);
+
+        if (serialized != null) {
+            YamlConfiguration yaml = new YamlConfiguration();
+            try {
+                yaml.loadFromString(serialized);
+                this.storedItem = yaml.getItemStack("item");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (!meta.hasLore()) return;
+        String[] str = meta.getLore().get(0).split(" ");
+
+        if (str[0].matches("Empty")) {
+            isEmpty = true;
+        } else {
+            if (this.storedItem != null) {//PDCあるとき
+                ItemMeta storedMeta = this.storedItem.getItemMeta();
+                mat = this.storedItem.getType();
+                if (storedMeta.hasDisplayName()) {
+                    if (pdc.has(IS_STORAGE_SIGN, PersistentDataType.BYTE) && storedMeta.getDisplayName().equals("StorageSign")) {
+                        damage = 1;
+                    }
+                    else {
+                        itemName = storedMeta.getDisplayName();
+                    }
+                }
+                else if (storedMeta.hasItemName()) {
+                    itemName = storedMeta.getItemName();
+                }
+                else if (storedMeta instanceof EnchantmentStorageMeta enchantMeta) {
+                    if (!enchantMeta.getStoredEnchants().isEmpty()) {
+                        ench = enchantMeta.getStoredEnchants().keySet().iterator().next();
+                        damage = (short) enchantMeta.getStoredEnchantLevel(ench);
+                    }
+                }
+                else if (storedMeta instanceof PotionMeta potionMeta) {
+                    pot = potionMeta.getBasePotionType();
+                }
+                else {
+                    if (pdc.has(IS_STORAGE_SIGN, PersistentDataType.BYTE)) {
+                        damage = 1;
+                    }
+                    else {
+                        damage = (short) 0;
+                    }
+                }
+            } else {//PDCないとき
+                mat = getMaterial(str[0].split(":")[0]);
+                if (mat == Material.ENCHANTED_BOOK) {
+                    EnchantInfo ei = new EnchantInfo(mat, str[0].split(":"));
+                    damage = ei.getDamage();
+                    ench = ei.getEnchantType();
+                } else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION) {
+                    PotionInfo pi = new PotionInfo(mat, str[0].split(":"));
+                    mat = pi.getMaterial();
+                    pot = pi.getPotionType();
+                } else if (str[0].contains(":")) {
+                    damage = NumberConversions.toShort(str[0].split(":")[1]);
+                }
+            }
+            amount = NumberConversions.toInt(str[str.length - 1]);
+        }
     }
 
     //Sto(ry
@@ -69,27 +120,63 @@ public class StorageSign {
     }*/
     
 	public StorageSign(Sign sign,Material signmat) {//上と統合したい
-        String[] line2 = sign.getLine(1).trim().split(":");
-        mat = getMaterial(line2[0]);
-        isEmpty = mat == null || mat == Material.AIR;
-        
-		 if(mat == Material.ENCHANTED_BOOK){
-			EnchantInfo ei = new EnchantInfo(mat, line2);
-        	damage = ei.getDamage();
-        	ench = ei.getEnchantType();
-        }
-         else if(mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-             PotionInfo pi = new PotionInfo(mat, line2);
-             mat = pi.getMaterial();
-             pot = pi.getPotionType();
-         }
-        else if(line2.length == 2) damage = NumberConversions.toShort(line2[1]);
-        else if(mat== Material.STONE_SLAB )  mat = Material.SMOOTH_STONE_SLAB;//1.13の滑らかハーフと1.14の石ハーフ区別
-		 
-        amount = NumberConversions.toInt(sign.getLine(2));
-        isEmpty = amount == 0;
-        stack = 1;
         loadItemStack(sign);
+
+        if (storedItem != null) {
+            mat = storedItem.getType();
+            ItemMeta meta = storedItem.getItemMeta();
+            if (meta != null) {
+                PersistentDataContainer itemPdc = meta.getPersistentDataContainer();
+                if (meta.hasDisplayName()) {
+                    if (itemPdc.has(IS_STORAGE_SIGN, PersistentDataType.BYTE) && meta.getDisplayName().equals("StorageSign")) {
+                        damage = 1;
+                    }
+                    else {
+                        itemName = meta.getDisplayName();
+                    }
+                }
+                else if (meta.hasItemName()){
+                    itemName = meta.getItemName();
+                }
+                else if (meta instanceof EnchantmentStorageMeta enchantMeta) {
+                    if (!enchantMeta.getStoredEnchants().isEmpty()) {
+                        ench = enchantMeta.getStoredEnchants().keySet().iterator().next();
+                        damage = (short) enchantMeta.getStoredEnchantLevel(ench);
+                    }
+                }
+                else if (meta instanceof PotionMeta potionMeta) {
+                    pot = potionMeta.getBasePotionType();
+                }
+                else {
+                    if (itemPdc.has(IS_STORAGE_SIGN, PersistentDataType.BYTE)) {
+                        damage = 1;
+                    }
+                    else {
+                        damage = 0;
+                    }
+                }
+            }
+        } else {
+            //PDCなかったよ
+            String[] line2 = sign.getLine(1).trim().split(":");
+            mat = getMaterial(line2[0]);
+            isEmpty = mat == null || mat == Material.AIR;
+            if (mat == Material.ENCHANTED_BOOK) {
+                EnchantInfo ei = new EnchantInfo(mat, line2);
+                damage = ei.getDamage();
+                ench = ei.getEnchantType();
+            } else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION) {
+                PotionInfo pi = new PotionInfo(mat, line2);
+                mat = pi.getMaterial();
+                pot = pi.getPotionType();
+            } else if (line2.length == 2) {
+                damage = NumberConversions.toShort(line2[1]);
+            }
+        }
+
+        amount = NumberConversions.toInt(sign.getLine(2));
+        isEmpty = (amount == 0);
+        stack = 1;
 
         //壁掛け看板のチェック
         if(signmat == Material.OAK_WALL_SIGN) smat = Material.OAK_SIGN;
@@ -104,7 +191,7 @@ public class StorageSign {
         else if(signmat == Material.CHERRY_WALL_SIGN) smat = Material.CHERRY_SIGN;
         else if(signmat == Material.BAMBOO_WALL_SIGN) smat = Material.BAMBOO_SIGN;
         else smat = signmat;
-        
+
     }
 
     public void storeItemStack(Sign sign) {
@@ -113,7 +200,7 @@ public class StorageSign {
         PersistentDataContainer pdc = sign.getPersistentDataContainer();
         YamlConfiguration config = new YamlConfiguration();
         config.set("item", storedItem);
-        String serialized = config.saveToString(); // アイテムを文字列に変換
+        String serialized = config.saveToString();
 
         pdc.set(STORED_ITEM, PersistentDataType.STRING, serialized);
         sign.update();
@@ -127,7 +214,7 @@ public class StorageSign {
             YamlConfiguration config = new YamlConfiguration();
             try {
                 config.loadFromString(serialized);
-                this.storedItem = config.getItemStack("item");
+                storedItem = config.getItemStack("item");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -182,22 +269,18 @@ public class StorageSign {
             damage = 1;
             return Material.BAMBOO_SIGN;
         }
-        if (str.matches("HorseEgg")){
-        	damage = 1;
-        	return Material.END_PORTAL;//ガスト卵でよくね？
-        }
         //if (str.startsWith("REDSTONE_TORCH")) return Material.REDSTONE_TORCH;
         //if (str.startsWith("RS_COMPARATOR")) return Material.COMPARATOR;
         //if (str.startsWith("STAINGLASS_P")) return Material.LEGACY_STAINED_GLASS_PANE;
         //if (str.startsWith("BROWN_MUSH_B")) return Material.BROWN_MUSHROOM_BLOCK;
         //if (str.startsWith("RED_MUSH_BLO")) return Material.RED_MUSHROOM_BLOCK;
-        
+
         //1.13→1.14用
         if (str.startsWith("SIGN")) return Material.OAK_SIGN;
         if (str.startsWith("ROSE_RED")) return Material.RED_DYE;
         if (str.startsWith("DANDELION_YELLOW")) return Material.YELLOW_DYE;
         if (str.startsWith("CACTUS_GREEN")) return Material.GREEN_DYE;
-        
+
         //省略用
         if (str.startsWith("ENCHBOOK")) return Material.ENCHANTED_BOOK;
         if (str.startsWith("SPOTION")) return Material.SPLASH_POTION;
@@ -211,13 +294,13 @@ public class StorageSign {
         }
         return mat;//nullなら空.
     }
-	
+
     protected String getShortName() {//2行目の記載内容
+        if (itemName != null && !itemName.isEmpty()) {
+            return itemName;
+        }
         if (mat == null || mat == Material.AIR) return "";
-        else if (mat == Material.END_PORTAL){
-        	if(damage == 0) return "OakStorageSign";
-        	if(damage == 1) return "HorseEgg";
-        }else if(mat == Material.OAK_SIGN && damage == 1) return "OakStorageSign";
+        else if(mat == Material.OAK_SIGN && damage == 1) return "OakStorageSign";
         else if(mat == Material.SPRUCE_SIGN && damage == 1) return "SpruceStorageSign";
         else if(mat == Material.BIRCH_SIGN && damage == 1) return "BirchStorageSign";
         else if(mat == Material.JUNGLE_SIGN && damage == 1) return "JungleStorageSign";
@@ -263,7 +346,7 @@ public class StorageSign {
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
 
             //StorageSignですよ
-            pdc.set(IS_STORAGE_KEY, PersistentDataType.BYTE, (byte) 1);
+            pdc.set(IS_STORAGE_SIGN, PersistentDataType.BYTE, (byte) 1);
 
             //空じゃなかったら引き継ぐよ
             if (!isEmpty && storedItem != null) {
@@ -279,9 +362,9 @@ public class StorageSign {
         if (isEmpty) list.add("Empty");
         else if (mat == Material.ENCHANTED_BOOK) list.add(mat.toString() + ":" + ench.getKey().getKey() + ":" + damage + " " + amount);
         else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION){
-            list.add(getShortName() + " " + amount);
+            list.add(getShortName() + " §r" + amount);
         }
-        else list.add(getShortName() +" "+ amount);
+        else list.add(getShortName() + " §r" + amount);
         meta.setLore(list);
         item.setItemMeta(meta);
         return item;
@@ -289,7 +372,7 @@ public class StorageSign {
 
     public static ItemStack emptySign() {
     	return emptySign(Material.OAK_SIGN);
-    	
+
     }
 
 	public static ItemStack emptySign(Material smat) {
@@ -297,9 +380,9 @@ public class StorageSign {
         ItemMeta meta = emptySign.getItemMeta();
 
         //PDC設定
-        if (meta != null && IS_STORAGE_KEY != null) {
+        if (meta != null && IS_STORAGE_SIGN != null) {
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(IS_STORAGE_KEY, PersistentDataType.BYTE, (byte) 1);
+            pdc.set(IS_STORAGE_SIGN, PersistentDataType.BYTE, (byte) 1);
         }
 
         List<String> list = new ArrayList<>();
@@ -309,18 +392,6 @@ public class StorageSign {
 
         emptySign.setItemMeta(meta);
         return emptySign;
-	}
-    
-
-    private ItemStack emptyHorseEgg() {
-        ItemStack emptyHorseEgg = new ItemStack(Material.GHAST_SPAWN_EGG);
-        ItemMeta meta = emptyHorseEgg.getItemMeta();
-        List<String> list = new ArrayList<>();
-        meta.setDisplayName("HorseEgg");
-        list.add("Empty");
-        meta.setLore(list);
-        emptyHorseEgg.setItemMeta(meta);
-        return emptyHorseEgg;
 	}
 
     public String getSigntext(int i) {
@@ -354,6 +425,7 @@ public class StorageSign {
     public Material getMaterial() {
         return mat;
     }
+
     public void setMaterial(Material mat) {
         this.mat = mat;
     }
@@ -405,43 +477,26 @@ public class StorageSign {
 	public PotionType getPotion() {
 		return pot;
 	}
-	
+
 	public Material getSmat() {
 		return smat;
 	}
 
-    public static NamespacedKey getIsStorageKey() {
-        return IS_STORAGE_KEY;
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public static NamespacedKey getIsStorageSign() {
+        return IS_STORAGE_SIGN;
     }
 
     public void setStoredItem(ItemStack item) {
         this.storedItem = item;
         this.storedItem.setAmount(1); //数はいらない
     }
-
-	private boolean isShulker(Material mat) {
-		switch(mat){
-		case SHULKER_BOX:
-		case WHITE_SHULKER_BOX:
-		case ORANGE_SHULKER_BOX:
-		case MAGENTA_SHULKER_BOX:
-		case LIGHT_BLUE_SHULKER_BOX:
-		case YELLOW_SHULKER_BOX:
-		case LIME_SHULKER_BOX:
-		case PINK_SHULKER_BOX:
-		case GRAY_SHULKER_BOX:
-		case LIGHT_GRAY_SHULKER_BOX:
-		case CYAN_SHULKER_BOX:
-		case PURPLE_SHULKER_BOX:
-		case BLUE_SHULKER_BOX:
-		case BROWN_SHULKER_BOX:
-		case GREEN_SHULKER_BOX:
-		case RED_SHULKER_BOX:
-		case BLACK_SHULKER_BOX:
-			return true;
-		default:
-		}
-		return false;
-	}
 	
 }
