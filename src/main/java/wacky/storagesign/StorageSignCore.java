@@ -10,7 +10,6 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.UndefinedNullability;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
@@ -44,10 +43,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.meta.BannerMeta;
-import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -103,20 +99,14 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 	public boolean isStorageSign(ItemStack item) {
 		if (item == null || !item.hasItemMeta()) return false;
 		PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
-		return pdc.has(StorageSign.getIsStorageKey(), PersistentDataType.BYTE);
+		return pdc.has(StorageSign.getIsStorageSign(), PersistentDataType.BYTE);
 	}
 
 	public boolean isStorageSign(Block block) {
 		if (block.getState() instanceof org.bukkit.block.TileState state) {
 			PersistentDataContainer pdc = state.getPersistentDataContainer();
-			return pdc.has(StorageSign.getIsStorageKey(), PersistentDataType.BYTE);
+			return pdc.has(StorageSign.getIsStorageSign(), PersistentDataType.BYTE);
 		}
-		return false;
-	}
-
-	public boolean isHorseEgg(ItemStack item){
-		if(item.getType() != Material.GHAST_SPAWN_EGG) return false;
-		if(item.getItemMeta().hasLore()) return true;
 		return false;
 	}
 
@@ -157,15 +147,22 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 			if (storageSign.getMaterial() == null || storageSign.getMaterial() == Material.AIR) {
 				if(itemMainHand == null) return;//申し訳ないが素手はNG
 				mat = itemMainHand.getType();
-				if (isStorageSign(itemMainHand)) {
+				ItemMeta meta = itemMainHand.getItemMeta();
+				if (meta.hasDisplayName()) {
+					if (isStorageSign(itemMainHand) && meta.getDisplayName().equals("StorageSign")) {
+						storageSign.setMaterial(mat);
+						storageSign.setDamage((short) 1);
+					}
+					else {
+						storageSign.setMaterial(mat);
+						storageSign.setItemName(meta.getDisplayName());
+					}
+				}
+				else if (meta.hasItemName()) {
 					storageSign.setMaterial(mat);
-					storageSign.setDamage((short) 1);
+					storageSign.setItemName(meta.getItemName());
 				}
-				else if (isHorseEgg(itemMainHand)){
-					storageSign.setMaterial(Material.END_PORTAL);
-					storageSign.setDamage((short) 1);
-				}
-				else if(mat == Material.STONE_SLAB){	
+				else if (isStorageSign(itemMainHand)) {
 					storageSign.setMaterial(mat);
 					storageSign.setDamage((short) 1);
 				}
@@ -181,23 +178,11 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				else if (mat == Material.ENCHANTED_BOOK)
 				{
 					EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta)itemMainHand.getItemMeta();
-					if(enchantMeta.getStoredEnchants().size() == 1) {
+					if(!enchantMeta.getStoredEnchants().isEmpty()) {
 						Enchantment ench = enchantMeta.getStoredEnchants().keySet().toArray(new Enchantment[0])[0];
 						storageSign.setMaterial(mat);
 						storageSign.setDamage((short) enchantMeta.getStoredEnchantLevel(ench));
 						storageSign.setEnchant(ench);
-					}
-				}else if(mat == Material.FIREWORK_ROCKET){
-					storageSign.setMaterial(mat);
-					FireworkMeta fireworkMeta = (FireworkMeta)itemMainHand.getItemMeta();
-					storageSign.setDamage((short) fireworkMeta.getPower());
-				}
-				else if(mat == Material.WHITE_BANNER){
-					storageSign.setMaterial(mat);
-					BannerMeta bannerMeta = (BannerMeta)itemMainHand.getItemMeta();
-					if(bannerMeta.getPatterns().size() == 8) {
-						ominousBannerMeta = bannerMeta;//襲撃バナー登録
-						storageSign.setDamage((short) 8);
 					}
 				}
 				else
@@ -207,7 +192,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				}
 
 				storageSign.setStoredItem(itemMainHand.clone());
-				sign.getPersistentDataContainer().set(StorageSign.getIsStorageKey(), PersistentDataType.BYTE, (byte) 1);
+				sign.getPersistentDataContainer().set(StorageSign.getIsStorageSign(), PersistentDataType.BYTE, (byte) 1);
 				storageSign.storeItemStack(sign);
 				for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
 				sign.update();
@@ -222,7 +207,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					itemSign.setAmount(0);
 					player.getInventory().setItemInMainHand(itemSign.getStorageSign());
 				}//空看板収納
-				else if (itemSign.isEmpty() && storageSign.getMaterial() == itemSign.getSmat() && storageSign.getDamage() == 1 && config.getBoolean("manual-import")) {
+				else if (itemSign.isEmpty() && storageSign.getMaterial() == itemSign.getSmat() && config.getBoolean("manual-import")) {
 					if (player.isSneaking() ) {
 						storageSign.addAmount(itemMainHand.getAmount());
 						player.getInventory().clear(player.getInventory().getHeldItemSlot());
@@ -328,7 +313,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				event.setLine(0, "StorageSign");
 				if (block.getState() instanceof Sign sign) {
 					PersistentDataContainer pdc = sign.getPersistentDataContainer();
-					pdc.set(StorageSign.getIsStorageKey(), PersistentDataType.BYTE, (byte) 1);
+					pdc.set(StorageSign.getIsStorageSign(), PersistentDataType.BYTE, (byte) 1);
 					sign.update();
 				}
 			}
@@ -373,11 +358,12 @@ public class StorageSignCore extends JavaPlugin implements Listener{
             event.setCancelled(true);
             return;
         }
-        StorageSign storageSign = new StorageSign(event.getItemInHand());
-        Sign sign = (Sign)event.getBlock().getState();
 		//PDC
+		StorageSign storageSign = new StorageSign(event.getItemInHand());
+		Sign sign = (Sign)event.getBlock().getState();
 		PersistentDataContainer blockPdc = sign.getPersistentDataContainer();
-		blockPdc.set(StorageSign.getIsStorageKey(), PersistentDataType.BYTE, (byte) 1);
+		blockPdc.set(StorageSign.getIsStorageSign(), PersistentDataType.BYTE, (byte) 1);
+		storageSign.storeItemStack(sign);
 
         for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
         
