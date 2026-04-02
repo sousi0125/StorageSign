@@ -224,6 +224,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					itemSign.setDamage(storageSign.getDamage());
 					itemSign.setEnchant(storageSign.getEnchant());
 					itemSign.setPotion(storageSign.getPotion());
+					itemSign.setStoredItem(storageSign.getStoredItem());
 
 					int limit = config.getInt("divide-limit");
 
