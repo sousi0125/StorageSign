@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>wacky</groupId>
     <artifactId>storagesign</artifactId>
-    <version>3.0.0</version>
+    <version>3.0.1</version>
     <packaging>jar</packaging>
     <name>StorageSign</name>
 
@@ -55,4 +55,13 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <build>
+                <finalName>${project.name}-${project.version}-Dev</finalName>
+            </build>
+        </profile>
+    </profiles>
 </project>
