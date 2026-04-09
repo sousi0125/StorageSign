@@ -1,10 +1,6 @@
 package wacky.storagesign;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
+import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import org.bukkit.*;
 import org.bukkit.block.*;
 import org.bukkit.block.data.type.WallSign;
@@ -19,27 +15,22 @@ import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.block.*;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.meta.*;
+import org.bukkit.inventory.*;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.*;
 
 public class StorageSignCore extends JavaPlugin implements Listener{
 
@@ -316,41 +307,90 @@ public class StorageSignCore extends JavaPlugin implements Listener{
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockBreak(BlockBreakEvent event) {
         if (event.isCancelled()) return;
-        Block block = event.getBlock();
-        Map<Location, StorageSign> breakSignMap = new HashMap<>();
-        if (isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
-
-        for (int i=0; i<5; i++) {//東西南北で判定
-            BlockFace[] face = {BlockFace.UP,BlockFace.SOUTH,BlockFace.NORTH,BlockFace.EAST,BlockFace.WEST};
-            block = event.getBlock().getRelative(face[i]);
-            if (i==0 && isSignPost(block) && isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
-            else if(isWallSign(block) && ((WallSign) block.getBlockData()).getFacing() == face[i] && isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
-        }
-        if (breakSignMap.isEmpty()) return;
-        if (!event.getPlayer().hasPermission("storagesign.break")) {
+		if (!isStorageSign(event.getBlock())) return;
+		if (!event.getPlayer().hasPermission("storagesign.break")) {
             event.getPlayer().sendMessage(ChatColor.RED + config.getString("no-permisson"));
             event.setCancelled(true);
             return;
         }
-
-        for (Location loc : breakSignMap.keySet()) {
-            StorageSign sign = breakSignMap.get(loc);
-            Location loc2 = loc;
-            loc2.add(0.5, 0.5, 0.5);//中心にドロップさせる
-            loc.getWorld().dropItem(loc2, sign.getStorageSign());
-            loc.getBlock().setType(Material.AIR);
-        }
+		event.setDropItems(false);
+		dropStorageSign(event.getBlock());
     }
 
-    @EventHandler
-    public void onBlockPlace(BlockPlaceEvent event) {
-        if (event.isCancelled() || !isStorageSign(event.getItemInHand())) return;
-        Player player = event.getPlayer();
-        if (!player.hasPermission("storagesign.place")) {
-            player.sendMessage(ChatColor.RED + config.getString("no-permisson"));
-            event.setCancelled(true);
-            return;
-        }
+	@EventHandler(priority = EventPriority.HIGH)
+	public void onBlockDestroy(BlockDestroyEvent event){
+		if (event.isCancelled()) return;
+		if (!isStorageSign(event.getBlock())) return;
+		event.setWillDrop(false);
+		dropStorageSign(event.getBlock());
+	}
+
+	@EventHandler(priority = EventPriority.HIGH)
+	public void onEntityExplode(EntityExplodeEvent event){
+		if (event.isCancelled()) return;
+		List<Block> blockList = event.blockList();
+		boolean hasSign = blockList.stream().anyMatch(b -> Tag.SIGNS.isTagged(b.getType()));
+		if (!hasSign) return;
+		Iterator<Block> iterator = blockList.iterator();
+		while (iterator.hasNext()) {
+			Block block = iterator.next();
+			if (isStorageSign(block)) {
+				dropStorageSign(block);
+				iterator.remove();
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.HIGH)
+	public void onBlockExplode(BlockExplodeEvent event){
+		if (event.isCancelled()) return;
+		List<Block> blockList = event.blockList();
+		boolean hasSign = blockList.stream().anyMatch(b -> Tag.SIGNS.isTagged(b.getType()));
+		if (!hasSign) return;
+		Iterator<Block> iterator = blockList.iterator();
+		while (iterator.hasNext()) {
+			Block block = iterator.next();
+			if (isStorageSign(block)) {
+				dropStorageSign(block);
+				iterator.remove();
+			}
+		}
+	}
+
+	public void dropStorageSign(Block block){
+		if (!(block.getState() instanceof Sign)) return;
+		if (!isStorageSign(block)) return;
+
+		Map<Location, StorageSign> breakSignMap = new HashMap<>();
+
+		breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
+
+		for (int i=0; i<5; i++) {//東西南北で判定
+			BlockFace[] face = {BlockFace.UP,BlockFace.SOUTH,BlockFace.NORTH,BlockFace.EAST,BlockFace.WEST};
+			block = block.getRelative(face[i]);
+			if (i==0 && isSignPost(block) && isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
+			else if(isWallSign(block) && ((WallSign) block.getBlockData()).getFacing() == face[i] && isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
+		}
+		if (breakSignMap.isEmpty()) return;
+
+		for (Location loc : breakSignMap.keySet()) {
+			StorageSign sign = breakSignMap.get(loc);
+			Location loc2 = loc.clone();
+			loc2.add(0.5, 0.5, 0.5);//中心にドロップさせる
+			loc.getWorld().dropItem(loc2, sign.getStorageSign());
+			loc.getBlock().setType(Material.AIR);
+		}
+	}
+
+	@EventHandler
+	public void onBlockPlace(BlockPlaceEvent event) {
+		if (event.isCancelled() || !isStorageSign(event.getItemInHand())) return;
+		Player player = event.getPlayer();
+		if (!player.hasPermission("storagesign.place")) {
+			player.sendMessage(ChatColor.RED + config.getString("no-permisson"));
+			event.setCancelled(true);
+			return;
+		}
 		//PDC
 		StorageSign storageSign = new StorageSign(event.getItemInHand());
 		Sign sign = (Sign)event.getBlock().getState();
@@ -358,16 +398,15 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		blockPdc.set(StorageSign.getIsStorageSign(), PersistentDataType.BYTE, (byte) 1);
 		storageSign.storeItemStack(sign);
 
-        for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
-        
-        if(storageSign.getSmat() == Material.DARK_OAK_SIGN ) {
-        	sign.setColor(DyeColor.WHITE);//文字色を白くする
-        }
-        sign.update();
-		Bukkit.getScheduler().runTaskLater(this, player::closeInventory, 1L);
-    }
-    
-    
+		for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
+
+		if(storageSign.getSmat() == Material.DARK_OAK_SIGN ) {
+			sign.setColor(DyeColor.WHITE);//文字色を白くする
+		}
+		sign.update();
+		Bukkit.getScheduler().runTask(this, () -> player.closeInventory());
+	}
+
     @EventHandler
     public void onItemMove(InventoryMoveItemEvent event) {
         if (event.isCancelled()) return;
