@@ -11,6 +11,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -29,6 +30,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import wacky.storagesign.Integrations.*;
 
 import java.util.*;
 
@@ -36,7 +38,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 	FileConfiguration config;
 
-	@Override
+    @Override
 	public void onEnable() {
 		config = this.getConfig();
 		config.options().copyDefaults(true);
@@ -73,6 +75,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 		getServer().getPluginManager().registerEvents(this, this);
 		if(config.getBoolean("no-bud")) new SignPhysicsEvent(this);
+		IntegrationsManager.init();
 	}
 
 	@Override
@@ -96,21 +99,13 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (event.isCancelled()) return;
 		Player player = event.getPlayer();
 		Block block;
-		//手持ちがブロックだと叩いた看板を取得できないことがあるとか
-		if (event.isCancelled() && event.getAction() == Action.RIGHT_CLICK_AIR) {
-			try {
-				block = player.getTargetBlock((Set) null, 3);
-			} catch (IllegalStateException ex) {
-				return;
-			}
-		} else {
-			block = event.getClickedBlock();
-		}
+		block = event.getClickedBlock();
 		if (block == null) return;
 		if(player.getGameMode() == GameMode.SPECTATOR) return;
-		if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) {
+		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 
 			if (!isStorageSign(block)) return;
 			if(event.getHand() == EquipmentSlot.OFF_HAND) return;//一応
@@ -120,6 +115,11 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				player.sendMessage(ChatColor.RED + config.getString("no-permisson"));
 				event.setCancelled(true);
 				return;
+			}
+			if (IntegrationsManager.isIntegrationsEnabled()) {
+				if (isProtected(player, block)) {
+					return;
+				}
 			}
 			Sign sign = (Sign) block.getState();
 			StorageSign storageSign = new StorageSign(sign,block.getType());
@@ -273,6 +273,24 @@ public class StorageSignCore extends JavaPlugin implements Listener{
             sign.update();
         }
     }
+
+	private boolean isProtected(Player player, Block block) {
+		if (IntegrationsManager.isWorldGuardEnabled()) {
+			if (!WorldGuardIntegration.canInteract(player, block.getLocation())) {
+				Location visualLoc = block.getLocation().add(0.5, 1.5, 0.5);
+				visualLoc.getWorld().playEffect(visualLoc, org.bukkit.Effect.SMOKE, 1);
+				player.sendMessage("§c§lHey! §r§7Sorry, but you can't interact that storage sign here.");
+				return true;
+			}
+		}
+
+		if (IntegrationsManager.isTownyEnabled()) {
+			if (!TownyIntegration.canInteract(player, block)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	@EventHandler
     public void onSignChange(SignChangeEvent event) {
