@@ -3,7 +3,7 @@ main: wacky.storagesign.StorageSignCore
 version: ${project.version}
 author: wackyls6,sousi0125
 api-version: 1.20
-softdepend: [WorldGuard]
+softdepend: [WorldGuard, Towny]
 website: https://github.com/sousi0125/StorageSign
 permissions:
     storagesign.*:
