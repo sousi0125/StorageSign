@@ -15,6 +15,9 @@ permissions:
                 storagesign.break: true
                 storagesign.create: true
                 storagesign.autocollect: true
+                storagesign.command.storagesign: true
+                storagesign.command.storagesign.setsignamount: true
+                storagesign.command.storagesign.setsignitem: true
     storagesign.use:
         description: Allows you to use a storagesign
         default: true
@@ -33,3 +36,19 @@ permissions:
     storagesign.autocollect:
         description: Collect your picked items
         default: true
+    storagesign.command.storagesign:
+        description: Allows you to /storagesign command
+        default: true
+    storagesign.command.storagesign.setsignamount:
+        description: Allows you to /storagesign setsignamount command
+        default: op
+    storagesign.command.storagesign.setsignitem:
+        description: Allows you to /storagesign setsignitem command
+        default: op
+commands:
+    storagesign:
+        aliases: [ss, storagesign]
+        description: StorageSign Commands
+        permission: storagesign.command.storagesign
+        permission-message: §cNo Permission!
+        usage: StorageSign

@@ -4,8 +4,9 @@ AMC用のStorageSignのポートです
 1.20.6対応  
 ほぼAIだけど使えるだけ許してね    
 バージョン対応のIssue飛ばされてもそこは無理だから許してね バグは対応するけど  
-**前提：PaperMC**
-
+**前提：PaperMC**  
+サポートするプラグイン  
+Towny, WorldGuard
 
 もとのリポジトリ->https://github.com/wackyls6/StorageSign  
 もとのりどみ⤵

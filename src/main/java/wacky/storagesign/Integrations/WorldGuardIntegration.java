@@ -21,6 +21,15 @@ public class WorldGuardIntegration {
         if (WorldGuard.getInstance().getPlatform().getSessionManager().hasBypass(localPlayer, weWorld)) {
             return true;
         }
-        return query.testBuild(weLoc, localPlayer, Flags.CHEST_ACCESS);
+
+        boolean canInteract = query.testBuild(weLoc, localPlayer, Flags.CHEST_ACCESS);
+
+        if (!canInteract) {
+            Location visualLoc = loc.add(0.5, 1.5, 0.5);
+            visualLoc.getWorld().playEffect(visualLoc, org.bukkit.Effect.SMOKE, 1);
+            player.sendMessage("§c§lHey! §r§7Sorry, but you can't interact that storage sign here.");
+        }
+
+        return canInteract;
     }
 }
