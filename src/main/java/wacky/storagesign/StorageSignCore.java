@@ -11,7 +11,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -76,6 +75,8 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		getServer().getPluginManager().registerEvents(this, this);
 		if(config.getBoolean("no-bud")) new SignPhysicsEvent(this);
 		IntegrationsManager.init();
+		getCommand("storagesign").setExecutor(new StoragesignCommands(this));
+		getCommand("storagesign").setTabCompleter(new StoragesignTabCompleter());
 	}
 
 	@Override
@@ -277,9 +278,6 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 	private boolean isProtected(Player player, Block block) {
 		if (IntegrationsManager.isWorldGuardEnabled()) {
 			if (!WorldGuardIntegration.canInteract(player, block.getLocation())) {
-				Location visualLoc = block.getLocation().add(0.5, 1.5, 0.5);
-				visualLoc.getWorld().playEffect(visualLoc, org.bukkit.Effect.SMOKE, 1);
-				player.sendMessage("§c§lHey! §r§7Sorry, but you can't interact that storage sign here.");
 				return true;
 			}
 		}
