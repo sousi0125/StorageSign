@@ -6,7 +6,6 @@ import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -14,13 +13,8 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.util.StringUtil;
 
-import java.util.Objects;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class StoragesignCommands implements CommandExecutor {
 
@@ -49,6 +43,7 @@ public class StoragesignCommands implements CommandExecutor {
                     !sub.equalsIgnoreCase("help")
                     && !sub.equalsIgnoreCase("setsignitem")
                     && !sub.equalsIgnoreCase("setsignamount")
+                    && !sub.equalsIgnoreCase("breakmode")
                 ) {
                 player.sendMessage("§cUnknown subcommand. Use /ss help for more info.");
                 return true;
@@ -65,6 +60,7 @@ public class StoragesignCommands implements CommandExecutor {
             sender.sendMessage("§c/ss help §7: View Help");
             sender.sendMessage("§c/ss setsignitem §7: Change the StorageSign item you are watching to the one you are holding");
             sender.sendMessage("§c/ss setsignamount [<count>] §7: Change the amount of StorageSign items displayed");
+            sender.sendMessage("§c/ss breakmode §7: Change breakmode");
             return true;
         }
 
@@ -172,6 +168,36 @@ public class StoragesignCommands implements CommandExecutor {
                     player.sendMessage("§aSet StorageSign item");
                     return true;
                 }
+            }
+        }
+        if (Objects.equals(args[0], "breakmode")) {
+            if (args.length > 1) {
+                player.sendMessage("§cUsage: /ss breakmode");
+                return true;
+            }
+            UUID uuid = player.getUniqueId();
+            Map<UUID, Long> breakMap = plugin.getBreakModePlayers();
+            if (breakMap.containsKey(uuid)) {
+                long expiryTime = breakMap.get(uuid);
+
+                if (System.currentTimeMillis() <= expiryTime) {
+                    breakMap.remove(uuid);
+                    player.sendMessage("§aBreakMode deactivated");
+                }
+                else {
+                    long durationMillis = 60 * 1000;
+                    long setExpiryTime = System.currentTimeMillis() + durationMillis;
+                    plugin.getBreakModePlayers().put(player.getUniqueId(), setExpiryTime);
+                    player.sendMessage("§aBreakMode activated 60seconds");
+                }
+                return true;
+            }
+            else {
+                long durationMillis = 60 * 1000;
+                long setExpiryTime = System.currentTimeMillis() + durationMillis;
+                plugin.getBreakModePlayers().put(player.getUniqueId(), setExpiryTime);
+                player.sendMessage("§aBreakMode activated 60seconds");
+                return true;
             }
         }
         return false;

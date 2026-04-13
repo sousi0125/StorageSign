@@ -3,6 +3,9 @@ package wacky.storagesign;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import org.bukkit.*;
 import org.bukkit.block.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.block.data.type.WallSign;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -36,6 +39,9 @@ import java.util.*;
 public class StorageSignCore extends JavaPlugin implements Listener{
 
 	FileConfiguration config;
+	private final Map<UUID, Long> clickTime = new HashMap<>();
+	private final Map<UUID, Location> clickLoc = new HashMap<>();
+	private final Map<UUID, Long> breakModePlayers = new HashMap<>();
 
     @Override
 	public void onEnable() {
@@ -104,106 +110,146 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		Player player = event.getPlayer();
 		Block block;
 		block = event.getClickedBlock();
+		if (player.getGameMode() == GameMode.SPECTATOR) return;
+		if (event.getHand() == EquipmentSlot.OFF_HAND) return;
 		if (block == null) return;
-		if(player.getGameMode() == GameMode.SPECTATOR) return;
-		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-
-			if (!isStorageSign(block)) return;
-			if(event.getHand() == EquipmentSlot.OFF_HAND) return;//一応
-			event.setUseItemInHand(Result.DENY);
-			event.setUseInteractedBlock(Result.DENY);
-			if (!player.hasPermission("storagesign.use")) {
-				player.sendMessage(ChatColor.RED + config.getString("no-permisson"));
-				event.setCancelled(true);
+		if (!isStorageSign(block)) return;
+		if (!player.hasPermission("storagesign.use")) {
+			player.sendMessage(ChatColor.RED + config.getString("no-permisson"));
+			event.setCancelled(true);
+			return;
+		}
+		if (IntegrationsManager.isIntegrationsEnabled()) {
+			if (isProtected(player, block)) {
 				return;
 			}
-			if (IntegrationsManager.isIntegrationsEnabled()) {
-				if (isProtected(player, block)) {
+		}
+
+		Sign sign = (Sign) block.getState();
+		StorageSign storageSign = new StorageSign(sign,block.getType());
+		ItemStack itemMainHand = null;
+		if (event.getItem() != null) itemMainHand = event.getItem();
+		Material mat;
+
+		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+			if (isBreakMode(player)) {
+				if (itemMainHand == null || !player.isSneaking()) event.setCancelled(true);
+				return;
+			}
+			if (sign.getBlockData() instanceof WallSign wallSign) {
+                BlockFace facing = wallSign.getFacing();
+				if (facing != event.getBlockFace()) {
+					if (itemMainHand == null || !player.isSneaking()) event.setCancelled(true);
 					return;
 				}
 			}
-			Sign sign = (Sign) block.getState();
-			StorageSign storageSign = new StorageSign(sign,block.getType());
-			ItemStack itemMainHand = event.getItem();
-			Material mat;
-
+			else if (event.getBlockFace() == BlockFace.UP) {
+				if (itemMainHand == null || !player.isSneaking()) event.setCancelled(true);
+				return;
+			}
 			//アイテム登録
 			if (storageSign.getMaterial() == null || storageSign.getMaterial() == Material.AIR) {
-				if(itemMainHand == null) return;//申し訳ないが素手はNG
-				mat = itemMainHand.getType();
-				ItemMeta meta = itemMainHand.getItemMeta();
-				if (meta.hasDisplayName()) {
-					if (isStorageSign(itemMainHand) && meta.getDisplayName().equals("StorageSign")) {
+				if (itemMainHand == null) {//申し訳ないが素手はNG
+					event.setCancelled(true);
+					return;
+				}
+				if (!player.isSneaking()) {
+					event.setUseItemInHand(Result.DENY);
+					event.setUseInteractedBlock(Result.DENY);
+					mat = itemMainHand.getType();
+					ItemMeta meta = itemMainHand.getItemMeta();
+					if (meta.hasDisplayName()) {
+						if (isStorageSign(itemMainHand) && meta.getDisplayName().equals("StorageSign")) {
+							storageSign.setMaterial(mat);
+							storageSign.setDamage((short) 1);
+						}
+						else {
+							storageSign.setMaterial(mat);
+							storageSign.setItemName(meta.getDisplayName());
+						}
+					}
+					else if (meta.hasItemName()) {
+						storageSign.setMaterial(mat);
+						storageSign.setItemName(meta.getItemName());
+					}
+					else if (isStorageSign(itemMainHand)) {
 						storageSign.setMaterial(mat);
 						storageSign.setDamage((short) 1);
 					}
-					else {
+					else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION)
+					{
 						storageSign.setMaterial(mat);
-						storageSign.setItemName(meta.getDisplayName());
-					}
-				}
-				else if (meta.hasItemName()) {
-					storageSign.setMaterial(mat);
-					storageSign.setItemName(meta.getItemName());
-				}
-				else if (isStorageSign(itemMainHand)) {
-					storageSign.setMaterial(mat);
-					storageSign.setDamage((short) 1);
-				}
-				else if (mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION)
-				{
-					storageSign.setMaterial(mat);
-					PotionMeta potionMeta = (PotionMeta)itemMainHand.getItemMeta();
+						PotionMeta potionMeta = (PotionMeta)itemMainHand.getItemMeta();
 
-					storageSign.setPotion(
-							potionMeta.getBasePotionType()
-					);
-				}
-				else if (mat == Material.ENCHANTED_BOOK)
-				{
-					EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta)itemMainHand.getItemMeta();
-					if(!enchantMeta.getStoredEnchants().isEmpty()) {
-						Enchantment ench = enchantMeta.getStoredEnchants().keySet().toArray(new Enchantment[0])[0];
+						storageSign.setPotion(
+								potionMeta.getBasePotionType()
+						);
+					}
+					else if (mat == Material.ENCHANTED_BOOK)
+					{
+						EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta)itemMainHand.getItemMeta();
+						if(!enchantMeta.getStoredEnchants().isEmpty()) {
+							Enchantment ench = enchantMeta.getStoredEnchants().keySet().toArray(new Enchantment[0])[0];
+							storageSign.setMaterial(mat);
+							storageSign.setDamage((short) enchantMeta.getStoredEnchantLevel(ench));
+							storageSign.setEnchant(ench);
+						}
+					}
+					else
+					{
 						storageSign.setMaterial(mat);
-						storageSign.setDamage((short) enchantMeta.getStoredEnchantLevel(ench));
-						storageSign.setEnchant(ench);
+						storageSign.setDamage(itemMainHand.getDurability());
 					}
-				}
-				else
-				{
-					storageSign.setMaterial(mat);
-					storageSign.setDamage(itemMainHand.getDurability());
-				}
 
-				storageSign.setStoredItem(itemMainHand.clone());
-				sign.getPersistentDataContainer().set(StorageSign.getIsStorageSign(), PersistentDataType.BYTE, (byte) 1);
-				storageSign.storeItemStack(sign);
-				for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
-				sign.update();
-				return;
+					storageSign.setStoredItem(itemMainHand.clone());
+					sign.getPersistentDataContainer().set(StorageSign.getIsStorageSign(), PersistentDataType.BYTE, (byte) 1);
+					storageSign.storeItemStack(sign);
+					for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
+					sign.update();
+					return;
+				}
 			}
 
-			if (isStorageSign(itemMainHand)) {
+			if (isStorageSign(itemMainHand) && !player.isSneaking()) {
 				//看板合成
 				StorageSign itemSign = new StorageSign(itemMainHand);
 				if (storageSign.getContents().isSimilar(itemSign.getContents()) && config.getBoolean("manual-import")) {
+					event.setUseItemInHand(Result.DENY);
+					event.setUseInteractedBlock(Result.DENY);
 					storageSign.addAmount(itemSign.getAmount() * itemSign.getStackSize());
 					itemSign.setAmount(0);
 					player.getInventory().setItemInMainHand(itemSign.getStorageSign());
 				}//空看板収納
 				else if (itemSign.isEmpty() && storageSign.getMaterial() == itemSign.getSmat() && config.getBoolean("manual-import")) {
-					if (player.isSneaking() ) {
-						storageSign.addAmount(itemMainHand.getAmount());
-						player.getInventory().clear(player.getInventory().getHeldItemSlot());
-					} else for (int i=0; i<player.getInventory().getSize(); i++) {
-						ItemStack item = player.getInventory().getItem(i);
-						if (storageSign.isSimilar(item)) {
-							storageSign.addAmount(item.getAmount());
-							player.getInventory().clear(i);
+					if (!player.isSneaking()) {
+						event.setUseItemInHand(Result.DENY);
+						event.setUseInteractedBlock(Result.DENY);
+						long now = System.currentTimeMillis();
+						long lastTime = clickTime.getOrDefault(player.getUniqueId(), 0L);
+						Location lastLoc = clickLoc.get(player.getUniqueId());
+
+						if (now - lastTime < 1500 && block.getLocation().equals(lastLoc)) {
+							clickTime.put(player.getUniqueId(), now);
+							clickLoc.put(player.getUniqueId(), block.getLocation());
+							for (int i=0; i<player.getInventory().getSize(); i++) {
+								ItemStack item = player.getInventory().getItem(i);
+								if (storageSign.isSimilar(item)) {
+									storageSign.addAmount(item.getAmount());
+									player.getInventory().clear(i);
+								}
+							}
+						}
+						else {
+							clickTime.put(player.getUniqueId(), now);
+							clickLoc.put(player.getUniqueId(), block.getLocation());
+							storageSign.addAmount(itemMainHand.getAmount());
+							player.getInventory().clear(player.getInventory().getHeldItemSlot());
 						}
 					}
 				}//中身分割機能
 				else if (itemSign.isEmpty() && storageSign.getAmount() > itemMainHand.getAmount() && config.getBoolean("manual-export")) {
+					event.setUseItemInHand(Result.DENY);
+					event.setUseInteractedBlock(Result.DENY);
 					itemSign.setMaterial(storageSign.getMaterial());
 					itemSign.setDamage(storageSign.getDamage());
 					itemSign.setEnchant(storageSign.getEnchant());
@@ -222,57 +268,109 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				return;
 			}
 
-            //ここから搬入
-            if (storageSign.isSimilar(itemMainHand)) {
-                if (!config.getBoolean("manual-import")) return;
-				if (player.isSneaking()) {
-					storageSign.addAmount(itemMainHand.getAmount());
-					player.getInventory().clear(player.getInventory().getHeldItemSlot());
+			if (!config.getBoolean("manual-import")) return;
 
+			if (player.isSneaking() && itemMainHand != null) {
+				if (isDye(itemMainHand) || itemMainHand.getType() == Material.GLOW_INK_SAC) {
 					if(isDye(itemMainHand)) {
 						sign.setColor(getDyeColor(itemMainHand));
+						ItemStack item = player.getInventory().getItemInMainHand();
+						item.setAmount(item.getAmount() - 1);
 					}
 					else if(itemMainHand.getType() == Material.GLOW_INK_SAC){
 						sign.setGlowingText(true);
+						ItemStack item = player.getInventory().getItemInMainHand();
+						item.setAmount(item.getAmount() - 1);
 					}
+					sign.update();
+					return;
+				}
+			}
 
-				} else for (int i=0; i<player.getInventory().getSize(); i++) {
-                    ItemStack item = player.getInventory().getItem(i);
-                    if (storageSign.isSimilar(item)) {
-                        storageSign.addAmount(item.getAmount());
-                        player.getInventory().clear(i);
-                    }
-                }
+			if (!player.isSneaking()) {
+				event.setUseItemInHand(Result.DENY);
+				event.setUseInteractedBlock(Result.DENY);
+				long now = System.currentTimeMillis();
+				long lastTime = clickTime.getOrDefault(player.getUniqueId(), 0L);
+				Location lastLoc = clickLoc.get(player.getUniqueId());
 
-                player.updateInventory();
-            } else if (config.getBoolean("manual-export"))/*放出*/ {
-
-				if(itemMainHand != null && (isDye(itemMainHand) || itemMainHand.getType() == Material.GLOW_INK_SAC)) {//染料or輝くイカスミの場合、放出せずに看板に色がつく
-            		event.setUseItemInHand(Result.ALLOW);
-        			event.setUseInteractedBlock(Result.ALLOW);//最初にDENYにしてたので戻す、同色染料が使えない。
-            		return;
-            	}
-            	
-            	else  if (storageSign.isEmpty()) return;
-                ItemStack item = storageSign.getContents();
-                int max = item.getMaxStackSize();
-
-                if (player.isSneaking()) storageSign.addAmount(-1);
-                else if (storageSign.getAmount() > max) {
-                    item.setAmount(max);
-                    storageSign.addAmount(-max);
-                } else {
-                    item.setAmount(storageSign.getAmount());
-                    storageSign.setAmount(0);
-                }
-
-                Location loc = player.getLocation();
-                loc.setY(loc.getY() + 0.5);
-                player.getWorld().dropItem(loc, item);
-            }
-            for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
-            sign.update();
+				if (now - lastTime < 1000 && block.getLocation().equals(lastLoc)) {
+					for (int i=0; i<player.getInventory().getSize(); i++) {
+						ItemStack item = player.getInventory().getItem(i);
+						if (storageSign.isSimilar(item)) {
+							storageSign.addAmount(item.getAmount());
+							player.getInventory().clear(i);
+						}
+					}
+				}
+				else if (storageSign.isSimilar(itemMainHand)) {
+					storageSign.addAmount(itemMainHand.getAmount());
+					player.getInventory().clear(player.getInventory().getHeldItemSlot());
+				}
+				clickTime.put(player.getUniqueId(), now);
+				clickLoc.put(player.getUniqueId(), block.getLocation());
+				player.updateInventory();
+				for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
+				sign.update();
+				return;
+			}
+			if (itemMainHand == null) event.setCancelled(true);
         }
+		else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+			if (config.getBoolean("manual-export")) {
+				if (storageSign.isEmpty()) return;
+				if (isBreakMode(player)) return;
+				if (sign.getBlockData() instanceof WallSign) {
+					WallSign wallSign = (WallSign) sign.getBlockData();
+					BlockFace facing = wallSign.getFacing();
+					if (facing != event.getBlockFace()) {
+						return;
+					}
+				}
+				else if (event.getBlockFace() == BlockFace.UP) {
+					return;
+				}
+				if (player.getGameMode() == GameMode.CREATIVE) event.setCancelled(true);
+
+				ItemStack item = storageSign.getContents();
+				int max = item.getMaxStackSize();
+
+				if (player.isSneaking()){
+					if (storageSign.getAmount() > max) {
+						item.setAmount(max);
+						storageSign.addAmount(-max);
+					}else {
+						item.setAmount(storageSign.getAmount());
+						storageSign.setAmount(0);
+					}
+				} else {
+					storageSign.addAmount(-1);
+				}
+
+				Map<Integer, ItemStack> remaining = player.getInventory().addItem(item);
+
+				if (!remaining.isEmpty()) {
+					BlockData data = block.getBlockData();
+					BlockFace facing;
+					if (data instanceof Directional) {
+						facing = ((Directional) data).getFacing();
+					} else if (data instanceof Rotatable) {
+						facing = ((Rotatable) data).getRotation();
+					} else {
+						facing = BlockFace.SELF;
+					}
+					Location dropLoc = block.getLocation().add(0.5, 0.5, 0.5).add(facing.getDirection().multiply(0.5)); // ブロックの中心座標
+
+					for (ItemStack dropItem : remaining.values()) {
+						Item droppedItem = player.getWorld().dropItem(dropLoc, dropItem);
+						droppedItem.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+						droppedItem.setPickupDelay(0);
+					}
+				}
+			}
+			for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
+			sign.update();
+		}
     }
 
 	private boolean isProtected(Player player, Block block) {
@@ -686,4 +784,18 @@ public class StorageSignCore extends JavaPlugin implements Listener{
         };
     }
 
+	public Map<UUID, Long> getBreakModePlayers() {
+		return breakModePlayers;
+	}
+
+	private boolean isBreakMode(Player player) {
+		UUID uuid = player.getUniqueId();
+		Map<UUID, Long> breakMap = getBreakModePlayers();
+		if (breakMap.containsKey(uuid)) {
+			long expiryTime = breakMap.get(uuid);
+
+            return System.currentTimeMillis() <= expiryTime;
+		}
+		return false;
+	}
 }

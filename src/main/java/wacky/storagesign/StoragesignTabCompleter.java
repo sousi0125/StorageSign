@@ -30,6 +30,9 @@ public class StoragesignTabCompleter implements TabCompleter {
             if (player.hasPermission("storagesign.command.storagesign.help")) {
                 commands.add("help");
             }
+            if (player.hasPermission("storagesign.command.stoagesign.breakmode")) {
+                commands.add("breakmode");
+            }
             return StringUtil.copyPartialMatches(args[0], commands, new ArrayList<>());
         }
 
@@ -43,6 +46,9 @@ public class StoragesignTabCompleter implements TabCompleter {
                 return Collections.emptyList();
             }
             if (args[0].equalsIgnoreCase("help")) {
+                return Collections.emptyList();
+            }
+            if (args[0].equalsIgnoreCase("breakmode")) {
                 return Collections.emptyList();
             }
         }
