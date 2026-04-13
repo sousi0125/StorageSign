@@ -15,6 +15,11 @@ public class IntegrationsManager {
         isTownyEnabled = pm.isPluginEnabled("Towny");
 
         isIntegrationsEnabled = isWorldGuardEnabled || isTownyEnabled;
+        if (isIntegrationsEnabled) {
+            System.out.println("Integrations Detected");
+            System.out.println("WorldGuard : " + isWorldGuardEnabled);
+            System.out.println("Towny : " + isTownyEnabled);
+        }
     }
 
     public static boolean isWorldGuardEnabled() {

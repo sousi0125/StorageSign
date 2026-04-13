@@ -3,6 +3,9 @@ package wacky.storagesign;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import org.bukkit.*;
 import org.bukkit.block.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.block.data.type.WallSign;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -133,9 +136,8 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				if (itemMainHand == null || !player.isSneaking()) event.setCancelled(true);
 				return;
 			}
-			if (sign.getBlockData() instanceof WallSign) {
-				WallSign wallSign = (WallSign) sign.getBlockData();
-				BlockFace facing = wallSign.getFacing();
+			if (sign.getBlockData() instanceof WallSign wallSign) {
+                BlockFace facing = wallSign.getFacing();
 				if (facing != event.getBlockFace()) {
 					if (itemMainHand == null || !player.isSneaking()) event.setCancelled(true);
 					return;
@@ -268,21 +270,29 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 			if (!config.getBoolean("manual-import")) return;
 
+			if (player.isSneaking() && itemMainHand != null) {
+				if (isDye(itemMainHand) || itemMainHand.getType() == Material.GLOW_INK_SAC) {
+					if(isDye(itemMainHand)) {
+						sign.setColor(getDyeColor(itemMainHand));
+						ItemStack item = player.getInventory().getItemInMainHand();
+						item.setAmount(item.getAmount() - 1);
+					}
+					else if(itemMainHand.getType() == Material.GLOW_INK_SAC){
+						sign.setGlowingText(true);
+						ItemStack item = player.getInventory().getItemInMainHand();
+						item.setAmount(item.getAmount() - 1);
+					}
+					sign.update();
+					return;
+				}
+			}
+
 			if (!player.isSneaking()) {
 				event.setUseItemInHand(Result.DENY);
 				event.setUseInteractedBlock(Result.DENY);
 				long now = System.currentTimeMillis();
 				long lastTime = clickTime.getOrDefault(player.getUniqueId(), 0L);
 				Location lastLoc = clickLoc.get(player.getUniqueId());
-
-				if (itemMainHand != null) {
-					if(isDye(itemMainHand)) {
-						sign.setColor(getDyeColor(itemMainHand));
-					}
-					else if(itemMainHand.getType() == Material.GLOW_INK_SAC){
-						sign.setGlowingText(true);
-					}
-				}
 
 				if (now - lastTime < 1000 && block.getLocation().equals(lastLoc)) {
 					for (int i=0; i<player.getInventory().getSize(); i++) {
@@ -337,9 +347,26 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					storageSign.addAmount(-1);
 				}
 
-				Location loc = player.getLocation();
-				loc.setY(loc.getY() + 0.5);
-				player.getWorld().dropItem(loc, item);
+				Map<Integer, ItemStack> remaining = player.getInventory().addItem(item);
+
+				if (!remaining.isEmpty()) {
+					BlockData data = block.getBlockData();
+					BlockFace facing;
+					if (data instanceof Directional) {
+						facing = ((Directional) data).getFacing();
+					} else if (data instanceof Rotatable) {
+						facing = ((Rotatable) data).getRotation();
+					} else {
+						facing = BlockFace.SELF;
+					}
+					Location dropLoc = block.getLocation().add(0.5, 0.5, 0.5).add(facing.getDirection().multiply(0.5)); // ブロックの中心座標
+
+					for (ItemStack dropItem : remaining.values()) {
+						Item droppedItem = player.getWorld().dropItem(dropLoc, dropItem);
+						droppedItem.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+						droppedItem.setPickupDelay(0);
+					}
+				}
 			}
 			for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
 			sign.update();
