@@ -104,12 +104,12 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		Player player = event.getPlayer();
 		Block block;
 		block = event.getClickedBlock();
+		if (player.getGameMode() == GameMode.SPECTATOR) return;
+		if (event.getHand() == EquipmentSlot.OFF_HAND) return;
 		if (block == null) return;
-		if(player.getGameMode() == GameMode.SPECTATOR) return;
+		if (!isStorageSign(block)) return;
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 
-			if (!isStorageSign(block)) return;
-			if(event.getHand() == EquipmentSlot.OFF_HAND) return;//一応
 			event.setUseItemInHand(Result.DENY);
 			event.setUseInteractedBlock(Result.DENY);
 			if (!player.hasPermission("storagesign.use")) {
@@ -226,9 +226,13 @@ public class StorageSignCore extends JavaPlugin implements Listener{
             if (storageSign.isSimilar(itemMainHand)) {
                 if (!config.getBoolean("manual-import")) return;
 				if (player.isSneaking()) {
-					storageSign.addAmount(itemMainHand.getAmount());
-					player.getInventory().clear(player.getInventory().getHeldItemSlot());
-
+					for (int i=0; i<player.getInventory().getSize(); i++) {
+						ItemStack item = player.getInventory().getItem(i);
+						if (storageSign.isSimilar(item)) {
+							storageSign.addAmount(item.getAmount());
+							player.getInventory().clear(i);
+						}
+					}
 					if(isDye(itemMainHand)) {
 						sign.setColor(getDyeColor(itemMainHand));
 					}
@@ -236,13 +240,10 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 						sign.setGlowingText(true);
 					}
 
-				} else for (int i=0; i<player.getInventory().getSize(); i++) {
-                    ItemStack item = player.getInventory().getItem(i);
-                    if (storageSign.isSimilar(item)) {
-                        storageSign.addAmount(item.getAmount());
-                        player.getInventory().clear(i);
-                    }
-                }
+				} else {
+					storageSign.addAmount(itemMainHand.getAmount());
+					player.getInventory().clear(player.getInventory().getHeldItemSlot());
+				}
 
                 player.updateInventory();
             } else if (config.getBoolean("manual-export"))/*放出*/ {
@@ -257,14 +258,17 @@ public class StorageSignCore extends JavaPlugin implements Listener{
                 ItemStack item = storageSign.getContents();
                 int max = item.getMaxStackSize();
 
-                if (player.isSneaking()) storageSign.addAmount(-1);
-                else if (storageSign.getAmount() > max) {
-                    item.setAmount(max);
-                    storageSign.addAmount(-max);
-                } else {
-                    item.setAmount(storageSign.getAmount());
-                    storageSign.setAmount(0);
-                }
+                if (player.isSneaking()){
+					if (storageSign.getAmount() > max) {
+						item.setAmount(max);
+						storageSign.addAmount(-max);
+					}else {
+						item.setAmount(storageSign.getAmount());
+						storageSign.setAmount(0);
+					}
+				} else {
+					storageSign.addAmount(-1);
+				}
 
                 Location loc = player.getLocation();
                 loc.setY(loc.getY() + 0.5);
