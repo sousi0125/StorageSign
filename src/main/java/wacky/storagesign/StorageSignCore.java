@@ -39,8 +39,7 @@ import java.util.*;
 public class StorageSignCore extends JavaPlugin implements Listener{
 
 	FileConfiguration config;
-	private final Map<UUID, Long> clickTime = new HashMap<>();
-	private final Map<UUID, Location> clickLoc = new HashMap<>();
+	private final Map<UUID, ClickInfo> lastClicks = new HashMap<>();
 	private final Map<UUID, Long> breakModePlayers = new HashMap<>();
 
     @Override
@@ -225,12 +224,11 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 						event.setUseItemInHand(Result.DENY);
 						event.setUseInteractedBlock(Result.DENY);
 						long now = System.currentTimeMillis();
-						long lastTime = clickTime.getOrDefault(player.getUniqueId(), 0L);
-						Location lastLoc = clickLoc.get(player.getUniqueId());
+						UUID uuid = player.getUniqueId();
+						Location currentLoc = block.getLocation();
+						ClickInfo last = lastClicks.get(uuid);
 
-						if (now - lastTime < 1500 && block.getLocation().equals(lastLoc)) {
-							clickTime.put(player.getUniqueId(), now);
-							clickLoc.put(player.getUniqueId(), block.getLocation());
+						if (last != null && (now - last.time() < 1000) && currentLoc.equals(last.location())) {
 							for (int i=0; i<player.getInventory().getSize(); i++) {
 								ItemStack item = player.getInventory().getItem(i);
 								if (storageSign.isSimilar(item)) {
@@ -240,11 +238,10 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 							}
 						}
 						else {
-							clickTime.put(player.getUniqueId(), now);
-							clickLoc.put(player.getUniqueId(), block.getLocation());
 							storageSign.addAmount(itemMainHand.getAmount());
 							player.getInventory().clear(player.getInventory().getHeldItemSlot());
 						}
+						lastClicks.put(uuid, new ClickInfo(now, currentLoc));
 					}
 				}//中身分割機能
 				else if (itemSign.isEmpty() && storageSign.getAmount() > itemMainHand.getAmount() && config.getBoolean("manual-export")) {
@@ -272,16 +269,17 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 			if (player.isSneaking() && itemMainHand != null) {
 				if (isDye(itemMainHand) || itemMainHand.getType() == Material.GLOW_INK_SAC) {
-					if(isDye(itemMainHand)) {
+					if(isDye(itemMainHand) && (sign.getColor() != getDyeColor(itemMainHand))) {
 						sign.setColor(getDyeColor(itemMainHand));
 						ItemStack item = player.getInventory().getItemInMainHand();
 						item.setAmount(item.getAmount() - 1);
 					}
-					else if(itemMainHand.getType() == Material.GLOW_INK_SAC){
+					else if(itemMainHand.getType() == Material.GLOW_INK_SAC && !sign.isGlowingText()){
 						sign.setGlowingText(true);
 						ItemStack item = player.getInventory().getItemInMainHand();
 						item.setAmount(item.getAmount() - 1);
 					}
+					event.setCancelled(true);
 					sign.update();
 					return;
 				}
@@ -291,10 +289,11 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				event.setUseItemInHand(Result.DENY);
 				event.setUseInteractedBlock(Result.DENY);
 				long now = System.currentTimeMillis();
-				long lastTime = clickTime.getOrDefault(player.getUniqueId(), 0L);
-				Location lastLoc = clickLoc.get(player.getUniqueId());
+				UUID uuid = player.getUniqueId();
+				Location currentLoc = block.getLocation();
+				ClickInfo last = lastClicks.get(uuid);
 
-				if (now - lastTime < 1000 && block.getLocation().equals(lastLoc)) {
+				if (last != null && (now - last.time() < 1000) && currentLoc.equals(last.location())) {
 					for (int i=0; i<player.getInventory().getSize(); i++) {
 						ItemStack item = player.getInventory().getItem(i);
 						if (storageSign.isSimilar(item)) {
@@ -307,8 +306,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 					storageSign.addAmount(itemMainHand.getAmount());
 					player.getInventory().clear(player.getInventory().getHeldItemSlot());
 				}
-				clickTime.put(player.getUniqueId(), now);
-				clickLoc.put(player.getUniqueId(), block.getLocation());
+				lastClicks.put(uuid, new ClickInfo(now, currentLoc));
 				player.updateInventory();
 				for (int i=0; i<4; i++) sign.setLine(i, storageSign.getSigntext(i));
 				sign.update();
@@ -799,3 +797,4 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		return false;
 	}
 }
+record ClickInfo(long time, Location location) {}
