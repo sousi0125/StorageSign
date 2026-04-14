@@ -2,6 +2,7 @@ package wacky.storagesign.Integrations;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
+import wacky.storagesign.StorageSignCore;
 
 public class IntegrationsManager {
 
@@ -9,16 +10,17 @@ public class IntegrationsManager {
     private static boolean isWorldGuardEnabled = false;
     private static boolean isTownyEnabled = false;
 
-    public static void init() {
+    public static void init(StorageSignCore plugin) {
         PluginManager pm = Bukkit.getPluginManager();
         isWorldGuardEnabled = pm.isPluginEnabled("WorldGuard");
         isTownyEnabled = pm.isPluginEnabled("Towny");
 
         isIntegrationsEnabled = isWorldGuardEnabled || isTownyEnabled;
         if (isIntegrationsEnabled) {
-            System.out.println("Integrations Detected");
-            System.out.println("WorldGuard : " + isWorldGuardEnabled);
-            System.out.println("Towny : " + isTownyEnabled);
+            plugin.getLogger().info("Integrations Detected");
+            plugin.getLogger().info("WorldGuard : " + isWorldGuardEnabled);
+            plugin.getLogger().info("Towny : " + isTownyEnabled);
+
         }
     }
 

@@ -79,7 +79,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 
 		getServer().getPluginManager().registerEvents(this, this);
 		if(config.getBoolean("no-bud")) new SignPhysicsEvent(this);
-		IntegrationsManager.init();
+		IntegrationsManager.init(this);
 		getCommand("storagesign").setExecutor(new StoragesignCommands(this));
 		getCommand("storagesign").setTabCompleter(new StoragesignTabCompleter());
 	}
