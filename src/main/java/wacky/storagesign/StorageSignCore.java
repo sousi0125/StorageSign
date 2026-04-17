@@ -344,6 +344,9 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 				} else {
 					storageSign.addAmount(-1);
 				}
+				Location loc = player.getLocation();
+				float pitch = (float) (((Math.random() - Math.random()) * .7f + 1) * 2);
+				loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS , .2f, pitch);
 
 				Map<Integer, ItemStack> remaining = player.getInventory().addItem(item);
 
