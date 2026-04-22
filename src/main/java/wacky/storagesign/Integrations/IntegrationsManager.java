@@ -20,7 +20,6 @@ public class IntegrationsManager {
             plugin.getLogger().info("Integrations Detected");
             plugin.getLogger().info("WorldGuard : " + isWorldGuardEnabled);
             plugin.getLogger().info("Towny : " + isTownyEnabled);
-
         }
     }
 

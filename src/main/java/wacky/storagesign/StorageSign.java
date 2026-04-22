@@ -360,11 +360,6 @@ public class StorageSign {
         return item;
     }
 
-    public static ItemStack emptySign() {
-    	return emptySign(Material.OAK_SIGN);
-
-    }
-
 	public static ItemStack emptySign(Material smat) {
         ItemStack emptySign = new ItemStack(smat);
         ItemMeta meta = emptySign.getItemMeta();

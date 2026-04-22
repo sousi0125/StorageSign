@@ -24,6 +24,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -605,7 +606,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
                         }
                     }
                 }
-            if (flag) exportSign(sign, storageSign, item, event);
+            if (flag) exportSign(sign, storageSign, item, event.getSource());
         }
     }
 
@@ -619,8 +620,7 @@ public class StorageSignCore extends JavaPlugin implements Listener{
         sign.update();
     }
 
-    private void exportSign(Sign sign, StorageSign storageSign, ItemStack item, InventoryMoveItemEvent event) {
-		Inventory inv = event.getSource();
+    private void exportSign(Sign sign, StorageSign storageSign, ItemStack item, Inventory inv) {
 		if (!inv.containsAtLeast(item, item.getMaxStackSize()) && storageSign.getAmount() >= item.getAmount()) {
 			if (inv.firstEmpty() == -1) return;
 			storageSign.addAmount(-item.getAmount());
@@ -640,6 +640,20 @@ public class StorageSignCore extends JavaPlugin implements Listener{
             event.setCancelled(true);
         }
     }
+
+	@EventHandler
+	public void onPrepareCraft(PrepareItemCraftEvent event) {
+		ItemStack[] matrix = event.getInventory().getMatrix();
+
+		for (ItemStack item : matrix) {
+			if (item == null || item.getType() == Material.AIR) continue;
+
+			if (isStorageSign(item)) {
+				event.getInventory().setResult(null);
+				break;
+			}
+		}
+	}
 
     @EventHandler
     public void onInventoryPickup(InventoryPickupItemEvent event) {//ホッパーに投げ込まれたとき
