@@ -477,25 +477,12 @@ public class StorageSignCore extends JavaPlugin implements Listener{
 		if (!(block.getState() instanceof Sign)) return;
 		if (!isStorageSign(block)) return;
 
-		Map<Location, StorageSign> breakSignMap = new HashMap<>();
-
-		breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
-
-		for (int i=0; i<5; i++) {//東西南北で判定
-			BlockFace[] face = {BlockFace.UP,BlockFace.SOUTH,BlockFace.NORTH,BlockFace.EAST,BlockFace.WEST};
-			block = block.getRelative(face[i]);
-			if (i==0 && isSignPost(block) && isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
-			else if(isWallSign(block) && ((WallSign) block.getBlockData()).getFacing() == face[i] && isStorageSign(block)) breakSignMap.put(block.getLocation(), new StorageSign((Sign)block.getState(),block.getType()));
-		}
-		if (breakSignMap.isEmpty()) return;
-
-		for (Location loc : breakSignMap.keySet()) {
-			StorageSign sign = breakSignMap.get(loc);
-			Location loc2 = loc.clone();
-			loc2.add(0.5, 0.5, 0.5);//中心にドロップさせる
-			loc.getWorld().dropItem(loc2, sign.getStorageSign());
-			loc.getBlock().setType(Material.AIR);
-		}
+		StorageSign sign = new StorageSign((Sign) block.getState(),block.getType());
+		Location loc = block.getLocation();
+		Location loc2 = loc.clone();
+		loc2.add(0.5, 0.5, 0.5);//中心にドロップさせる
+		loc.getWorld().dropItem(loc2, sign.getStorageSign());
+		loc.getBlock().setType(Material.AIR);
 	}
 
 	@EventHandler
