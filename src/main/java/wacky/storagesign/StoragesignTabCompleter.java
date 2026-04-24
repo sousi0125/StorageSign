@@ -16,23 +16,14 @@ public class StoragesignTabCompleter implements TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!(sender instanceof Player)) return Collections.emptyList();
-        Player player = (Player) sender;
 
         List<String> commands = new ArrayList<>();
 
         if (args.length == 1) {
-            if (player.hasPermission("storagesign.command.storagesign.setsignamount")) {
                 commands.add("setsignamount");
-            }
-            if (player.hasPermission("storagesign.command.storagesign.setsignitem")) {
                 commands.add("setsignitem");
-            }
-            if (player.hasPermission("storagesign.command.storagesign.help")) {
                 commands.add("help");
-            }
-            if (player.hasPermission("storagesign.command.stoagesign.breakmode")) {
                 commands.add("breakmode");
-            }
             return StringUtil.copyPartialMatches(args[0], commands, new ArrayList<>());
         }
 
