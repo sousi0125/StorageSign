@@ -70,6 +70,10 @@ public class StoragesignCommands implements CommandExecutor {
 
         if (Objects.equals(subCommand1, "setsignamount") || Objects.equals(subCommand1, "setsignitem")) {
             Block targetBlock = player.getTargetBlockExact(3);
+            if ((!player.hasPermission("storagesign.command.storagesign.setsignamount")) || (!player.hasPermission("storagesign.command.storagesign.setsignitem"))) {
+                player.sendMessage("§cNo Permission!");
+                return true;
+            }
             if (targetBlock == null || !(plugin.isStorageSign(targetBlock))) {
                 player.sendMessage("§cThis block is not Storage Sign");
                 return true;
@@ -171,6 +175,10 @@ public class StoragesignCommands implements CommandExecutor {
             }
         }
         if (Objects.equals(args[0], "breakmode")) {
+            if (!player.hasPermission("storagesign.command.storagesign.breakmode")) {
+                player.sendMessage("§cNo Permission!");
+                return true;
+            }
             if (args.length > 1) {
                 player.sendMessage("§cUsage: /ss breakmode");
                 return true;
